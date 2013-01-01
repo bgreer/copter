@@ -5,7 +5,8 @@
 	(correct addresses, baud rates, etc)
 */
 
-// 
+// check wireless data availability
+// attempt to parse incoming data as opcode + data package
 static void checkWireless()
 {
 	uint8_t ii = 0, done = 0;
@@ -67,6 +68,9 @@ static void checkWireless()
 	
 }
 
+
+// parse the 1 byte opcode and execute some code
+// reset the opcode at the end
 static void parseCommand()
 {
 #if DEBUG
