@@ -1,4 +1,5 @@
 
+#include <Servo.h>
 #include "header.h"
 
 // for main loop timing
@@ -29,7 +30,7 @@ void loop()
 	// 100Hz loop
 	// update IMU info
 	// calculate stability
-	// set motor speed
+	// set motor speed (if armed)
 	time = micros();
 	if (time-timer_100Hz > 10000)
 	{
@@ -89,6 +90,21 @@ static void quick_start()
 	timer_10Hz = time;
 	timer_2Hz = time;
 	counter_10Hz = 0;
+	// set pinmodes for esc lines TODO: redesign so this isnt needed
+	pinMode(GND_PIN[0], OUTPUT);
+	digitalWrite(GND_PIN[0], LOW);
+	pinMode(GND_PIN[1], OUTPUT);
+	digitalWrite(GND_PIN[1], LOW);
+	pinMode(GND_PIN[2], OUTPUT);
+	digitalWrite(GND_PIN[2], LOW);
+	pinMode(GND_PIN[3], OUTPUT);
+	digitalWrite(GND_PIN[3], LOW);
+	pinMode(GND_PIN[4], OUTPUT);
+	digitalWrite(GND_PIN[4], LOW);
+	pinMode(GND_PIN[5], OUTPUT);
+	digitalWrite(GND_PIN[5], LOW);
+	init_motors();
+
 	// start serial ports
 	SERIAL_WIRELESS.begin(WIRELESS_BAUD);
 	SERIAL_IMU.begin(IMU_BAUD);
@@ -97,6 +113,8 @@ static void quick_start()
 #endif
 	// start I2C, SPI if needed here
 	// set pinmodes and states
+	pinMode(LED_STATUS, OUTPUT);
+	pinMode(LED_ARMED, OUTPUT);
 	// send quick hello over wireless
 	
 

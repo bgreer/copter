@@ -2,9 +2,9 @@
 #define VERSION "0.1"
 
 // AVR runtime
-#include <avr/io.h>
-#include <avr/eeprom.h>
-#include <avr/pgmspace.h>
+//#include <avr/io.h>
+//#include <avr/eeprom.h>
+//#include <avr/pgmspace.h>
 #include <math.h>
 
 #define DEBUG 1
@@ -15,6 +15,7 @@
 
 // led pins
 #define LED_STATUS 13
+#define LED_ARMED 23
 
 // in case i get lazy
 #define TRUE (1)
@@ -43,9 +44,6 @@
 
 // Arduino stuff
 #include "Arduino.h"
-// remove dumb macros
-#undef round
-#undef abs
 
 // wireless comm is in the form:
 // START, OPCODE, VALUE, END (kind of like assembly)
@@ -60,22 +58,46 @@
 
 // make sure to keep NOP to 0x00, some logic stuff depends on it
 #define OPCODE_NOP 0x00 // no operation, just for fun
-
 #define OPCODE_HEARTBEAT 0x48 // heartbeat (H)
 #define OPCODE_ARM 0x02 // arm motors
 #define OPCODE_KILL 0x03 // kill motors
 #define OPCODE_CALIB 0x04 // run ESC calibration
 
+
+// Motor Control
+#define ESC_ARM_VAL 20
+#define ESC_MAX_VAL 179
+
+// // // Variables
+
+// motor control
+Servo motor[6];
+uint8_t ESC_PIN[6] = {7,8,9,10,11,12};
+uint8_t GND_PIN[6] = {26,27,28,29,30,31};
+uint8_t armed = 0;
+
+// wireless
 uint8_t wirelessOpcode = 0x00;
 uint8_t wirelessLength = 0;
 uint8_t wirelessPackage[WIRELESS_BYTELIMIT];
-
 
 // wireless heartbeat
 uint8_t heartbeat = 0;
 uint32_t lastHeartbeat = 0;
 
+
 // function prototypes
+
+// copter.pde
 static void quick_start();
+// wireless.pde
 static void checkWireless();
 static void parseCommand();
+// motors.pde TODO: make my naming convention sane
+static void init_motors();
+static void arm_motors();
+static void disarm_motors();
+static void calibrate_motors();
+
+
+

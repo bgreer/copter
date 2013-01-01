@@ -57,7 +57,6 @@ static void checkWireless()
 				// clear out the operation
 				wirelessOpcode = OPCODE_NOP;
 				wirelessLength = 0;
-				// TODO: send warning back over wireless about unfinished message?
 #if DEBUG
 				SERIAL_DEBUG.println("unfinished command, clearing buffer");
 #endif
@@ -87,10 +86,13 @@ static void parseCommand()
 #endif
 			break;
 		case OPCODE_ARM:
+			if (!armed) arm_motors();
 			break;
 		case OPCODE_KILL:
+			disarm_motors();
 			break;
 		case OPCODE_CALIB:
+			calibrate_motors();
 			break;
 	}
 	// at the end of execution, reset opcode
