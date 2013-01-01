@@ -37,30 +37,30 @@ void loop()
 	}
 
 	// 10Hz loop
-	// check telemetry data
+	// check wireless data
 	// update flight mode (consider heartbeat)
 	time = micros();
 	if (time-timer_10Hz > 100000)
 	{
-		// check telemetry, run operation
+		// check wireless, run operation
 		// actually runs at 5Hz
-		if (counter_10Hz) checkTelemetry();
+		if (counter_10Hz) checkWireless();
 		else if (telemOpcode) parseCommand();
 
 		// update flight mode
-		// if no telemetry heartbeat, go into safe mode
+		// if no wireless heartbeat, go into safe mode
 		if (!heartbeat) flightMode = SAFEMODE;
 		timer_10Hz = time;
 		counter_10Hz = !counter_10Hz;
 	}
 	
 	// 2Hz loop
-	// check telemetry heartbeat timeout
+	// check wireless heartbeat timeout
 	// get GPS info
 	time = micros();
 	if (time-timer_2Hz > 500000)
 	{
-		// check telemetry heartbeat
+		// check wireless heartbeat
 		if (heartbeat && time-lastHeartbeat > HEARTBEAT_TIMEOUT)
 		{
 			// no heartbeat detected from base station
@@ -95,7 +95,7 @@ static void quick_start()
 #endif
 	// start I2C, SPI if needed here
 	// set pinmodes and states
-	// send quick hello over telemetry
+	// send quick hello over wireless
 	
 
 	// should be ready to enter main loop now

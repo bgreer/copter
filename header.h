@@ -29,11 +29,11 @@
 
 // serial ports
 #define SERIAL_DEBUG Serial
-#define SERIAL_TELEM Serial
+#define SERIAL_WIRELESS Serial
 #define SERIAL_IMU Serial2
 
-#define TELEM_BAUD 115200
-#define TELEM_BYTELIMIT 8
+#define WIRELESS_BAUD 115200
+#define WIRELESS_BYTELIMIT 8
 #define IMU_BAUD 115200
 #define DEBUG_BAUD 115200
 
@@ -47,16 +47,16 @@
 #undef round
 #undef abs
 
-// telemetry is in the form:
+// wireless comm is in the form:
 // START, OPCODE, VALUE, END (kind of like assembly)
 // START is a 1 byte signal for the start of a message
 // OPCODE is 1 byte for the operation to do
 // VALUE is some number of bytes of data
 // END is another 1 byte signal for the end of a message
 
-// telemetry opcodes
-#define TELEM_START 0x53 // S
-#define TELEM_END 0x45 // E
+// wireless opcodes
+#define WIRELESS_START 0x53 // S
+#define WIRELESS_END 0x45 // E
 
 // make sure to keep NOP to 0x00, some logic stuff depends on it
 #define OPCODE_NOP 0x00 // no operation, just for fun
@@ -66,16 +66,16 @@
 #define OPCODE_KILL 0x03 // kill motors
 #define OPCODE_CALIB 0x04 // run ESC calibration
 
-uint8_t telemOpcode = 0x00;
-uint8_t telemLength = 0;
-uint8_t telemPackage[TELEM_BYTELIMIT];
+uint8_t wirelessOpcode = 0x00;
+uint8_t wirelessLength = 0;
+uint8_t wirelessPackage[WIRELESS_BYTELIMIT];
 
 
-// telemetry heartbeat
+// wireless heartbeat
 uint8_t heartbeat = 0;
 uint32_t lastHeartbeat = 0;
 
 // function prototypes
 static void quick_start();
-static void checkTelemetry();
+static void checkWireless();
 static void parseCommand();
