@@ -9,6 +9,8 @@ uint8_t counter_10Hz;
 // flight mode stuff
 uint8_t flightMode = SAFEMODE;
 
+
+
 void setup()
 {
 	// do quick start
@@ -45,7 +47,7 @@ void loop()
 		// check wireless, run operation
 		// actually runs at 5Hz
 		if (counter_10Hz) checkWireless();
-		else if (telemOpcode) parseCommand();
+		else if (wirelessOpcode) parseCommand();
 
 		// update flight mode
 		// if no wireless heartbeat, go into safe mode
@@ -88,7 +90,7 @@ static void quick_start()
 	timer_2Hz = time;
 	counter_10Hz = 0;
 	// start serial ports
-	SERIAL_TELEM.begin(TELEM_BAUD);
+	SERIAL_WIRELESS.begin(WIRELESS_BAUD);
 	SERIAL_IMU.begin(IMU_BAUD);
 #if DEBUG
 	SERIAL_DEBUG.begin(DEBUG_BAUD);
