@@ -21,12 +21,6 @@
 #define DGPS_SBAS   "$PMTK301,2*2E\r\n"
 #define DATUM_GOOGLE    "$PMTK330,0*2E\r\n"
 
-#define GPS_NOFIX 0
-#define GPS_BAD 1
-#define GPS_POOR 2
-#define GPS_OK 3
-#define GPS_GOOD 4
-	
 	long	utctime;			///< GPS time in milliseconds from the start of the week
 	long	latitude;		///< latitude in degrees * 10,000,000
 	long	longitude;		///< longitude in degrees * 10,000,000
@@ -34,13 +28,14 @@
 	long	ground_speed;	///< ground speed in cm/sec
 	long	ground_course;	///< ground course in 100ths of a degree
 	uint8_t num_sats;		///< Number of visible satelites
-	uint8_t fix, HDOP, quality;
+	uint8_t fix, HDOP;
 
 uint8_t GPS_checksum, GPS_checksum_calc;
 int bufferidx;
 char buffer[GPS_BUFFERSIZE];
-uint8_t gps_newpos, gps_newvel, gps_counter;
-long origin_lon, origin_lat;
+uint8_t gps_counter;
+long origin_lon, origin_lat, origin_alt;
+float cos_origin_lat;
 
 void gps_init()
 {
@@ -50,7 +45,10 @@ void gps_init()
   Serial.print(DGPS_SBAS);
   Serial.print(DATUM_GOOGLE);
 	gps_counter = 0;
-	origin_lon = origin_lat = 0L;
+	origin_lon = origin_lat, origin_alt = 0L;
+	gps_xpos = gps_ypos = gps_zpos = 0.0;
+	gps_xvel = gps_yvel = 0.0;
+	new_gpspos = new_gpsvel = 0;
 }
 
 void gps_update ()
@@ -106,7 +104,6 @@ void parse_nmea_gps ()
 		{
 			NMEA_check = parseHex(buffer[bufferidx - 3]) * 16 + parseHex(buffer[bufferidx - 2]);		// Read the checksums characters
 			if (GPS_checksum == NMEA_check){			// Checksum validation
-				gps_newpos = true;	// New GPS Data
 				parseptr = strchr(buffer, ',')+1;
 				utctime = parsenumber(parseptr, 2);					// GPS UTC time hhmmss.ss
 				parseptr = strchr(parseptr, ',')+1;
@@ -130,33 +127,35 @@ void parse_nmea_gps ()
 				parseptr = strchr(parseptr, ',')+1; 
 				HDOP = parsenumber(parseptr, 1);					// HDOP * 10
 				parseptr = strchr(parseptr, ',')+1;
-				altitude = parsenumber(parseptr, 1) * 100.;	// altitude in decimeters * 100 = milimeters
+				altitude = parsenumber(parseptr, 1) * 1000.;	// altitude in meters * 1000 = milimeters
 				if (fix < 1)
-					quality = GPS_NOFIX;			// No FIX
+					gps_quality = GPS_NOFIX;			// No FIX
 				else if(num_sats < 5)
-					quality = GPS_BAD;			// Bad (Num sats < 5)
+					gps_quality = GPS_BAD;			// Bad (Num sats < 5)
 				else if(HDOP > 30)
-					quality = GPS_POOR;			// Poor (HDOP > 30)
+					gps_quality = GPS_POOR;			// Poor (HDOP > 30)
 				else if(HDOP > 25)
-					quality = GPS_OK;			// Medium (HDOP > 25)
+					gps_quality = GPS_OK;			// Medium (HDOP > 25)
 				else
-					quality = GPS_GOOD;			// Good (HDOP < 25)
+					gps_quality = GPS_GOOD;			// Good (HDOP < 25)
 				
 				if (gps_counter < GPS_SETTLE)
 				{
 					gps_counter++;
-					longitude = latitude = 0L;
 				}
 				else if (gps_counter == GPS_SETTLE)
 				{
 					origin_lat = latitude;
+					cos_origin_lat = cos(((float)origin_lat)*0.01745329251/10000000.);
 					origin_lon = longitude;
-					longitude = latitude = 0L;
+					origin_alt = altitude;
 				}
 				else
 				{
-					latitude -= origin_lat;
-					longitude -= origin_lon;
+					gps_ypos = (float)(latitude - origin_lat)*0.01113; // 0.01113 meters per lowest digit
+					gps_xpos = (float)(longitude - origin_lon)*0.01113*cos_origin_lat; // dont remember if this is actually right
+					gps_zpos = (float)(altitude - origin_alt)/1000.;
+					new_gpspos = 1;
 				}
 			} else {
 				// ERROR: checksum error
@@ -169,7 +168,6 @@ void parse_nmea_gps ()
 		{
 			NMEA_check = parseHex(buffer[bufferidx - 3]) * 16 + parseHex(buffer[bufferidx - 2]);		// Read the checksums characters
 			if (GPS_checksum == NMEA_check){			// Checksum validation
-				gps_newvel = true;	// New GPS Data
 				parseptr = strchr(buffer, ',')+1;
 				ground_course = parsenumber(parseptr, 1) * 10;			// Ground course in degrees * 100
 				parseptr = strchr(parseptr, ',')+1;
@@ -179,10 +177,11 @@ void parse_nmea_gps ()
 				parseptr = strchr(parseptr, ',')+1;
 				parseptr = strchr(parseptr, ',')+1;
 				ground_speed = parsenumber(parseptr, 1) * 100 / 36; // Convert Km / h to m / s ( * 100)
-				if (gps_counter < GPS_SETTLE)
+				if (gps_counter > GPS_SETTLE)
 				{
-					ground_course = 0;
-					ground_speed = 0;
+					gps_xvel = ((float)ground_speed)*sin(((float)ground_course)/100.)/100.;
+					gps_yvel = ((float)ground_speed)*cos(((float)ground_course)/100.)/100.;
+					new_gpsvel = 1;
 				}
 			} else {
 				// ERROR: checksum error

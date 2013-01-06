@@ -1,4 +1,8 @@
-
+#define GPS_NOFIX 0
+#define GPS_BAD 1
+#define GPS_POOR 2
+#define GPS_OK 3
+#define GPS_GOOD 4
 // sensor scaling and bias
 #define correct_gyroX(x) (x*0.5321 + 32.250) // in millirad/s
 #define correct_gyroY(x) (x*-0.5321 + 0.004)
@@ -24,6 +28,9 @@
 float myx[3], myz[3]; // part of dcm
 float magX, magY, magZ;
 
+float gps_xpos, gps_ypos, gps_zpos;
+float gps_xvel, gps_yvel;
+uint8_t new_gpspos, new_gpsvel, gps_quality;
 float OFFSET[8], AN[8], grav, mag;
 volatile uint8_t MuxSel = 0;
 volatile uint8_t analog_reference = DEFAULT;
@@ -139,6 +146,19 @@ void loop()
 	AN[5] += grav*myz[2];
 
 	// add all processed measurements
+	if (new_gpspos && gps_quality >= GPS_OK)
+	{
+		kalman_addmeasurement(0, &gps_xpos);
+		kalman_addmeasurement(1, &gps_ypos);
+		kalman_addmeasurement(2, &gps_zpos);
+		new_gpspos = 0;
+	}
+	if (new_gpsvel && gps_quality >= GPS_OK)
+	{
+		kalman_addmeasurement(3, &gps_xvel);
+		kalman_addmeasurement(4, &gps_yvel);
+		new_gpsvel = 0;
+	}
 	kalman_addmeasurement(6, &(AN[3]));
 	kalman_addmeasurement(7, &(AN[4]));
 	kalman_addmeasurement(8, &(AN[5]));
