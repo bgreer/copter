@@ -7,9 +7,15 @@ void read_adc_raw()
 	AN[0] = gyroX;
 	AN[1] = gyroY;
 	AN[2] = gyroZ;
-	AN[3] = correct_accelX(accelX);
-	AN[4] = correct_accelY(accelY);
-	AN[5] = correct_accelZ(accelZ);
+	AN[3] = correct_accelX(accelX)*0.01;
+	AN[4] = correct_accelY(accelY)*0.01;
+	AN[5] = correct_accelZ(accelZ)*0.01;
+/*	outSerial.print(AN[3],4);
+	outSerial.print("\t");
+	outSerial.print(AN[4],4);
+	outSerial.print("\t");
+	outSerial.println(AN[5],4);
+*/
 }
 
 void Analog_Reference(uint8_t mode)

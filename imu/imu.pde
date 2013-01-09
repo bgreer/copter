@@ -8,9 +8,9 @@
 #define correct_gyroY(x) (x*-0.5321 + 0.004)
 #define correct_gyroZ(x) (x*-0.5321 - 11.989)
 
-#define correct_accelX(x) (x*-0.237406 + 46.4489) // in cm/s^2
-#define correct_accelY(x) (x*-0.238303 - 1.75128)
-#define correct_accelZ(x) (x*-0.233985 - 117.054)
+#define correct_accelX(x) (x*0.117 - 40.0) // in cm/s^2
+#define correct_accelY(x) (x*0.117 + 10.0)
+#define correct_accelZ(x) (x*-0.117 - 60.0)
 
 #define correct_magX(x) (x*-0.860897 - 12.7283) // in mG
 #define correct_magY(x) (x*-0.873852 - 104.083)
@@ -21,7 +21,8 @@
 #define BLUE_LED_PIN 6
 
 #define SETTLE_LOOP 50 // times to poll sensors before moving on from setup
-#define GPS_DELAY 1000 // update time for gps in milliseconds
+#define GPS_DELAY 10 // update time for gps in milliseconds
+#define MAG_DELAY 1000 // just because i dont care about the magnetometer
 
 #include <SoftwareSerial.h>
 
@@ -35,7 +36,7 @@ float OFFSET[8], AN[8], grav, mag;
 volatile uint8_t MuxSel = 0;
 volatile uint8_t analog_reference = DEFAULT;
 volatile int16_t analog_buffer[8];
-uint32_t time, lasttime;
+uint32_t time, time_gps, time_mag;
 
 SoftwareSerial outSerial(9, 8); // RX, TX
 
@@ -65,8 +66,6 @@ void setup()
 		read_adc_raw();
 		Read_Compass();
 		grav += sqrt(AN[3]*AN[3] + AN[4]*AN[4] + AN[5]*AN[5])/((float)SETTLE_LOOP);
-		for (ij=0; ij<7; ij++)
-			OFFSET[ij] += AN[ij];
 		// blink some stuff
 		digitalWrite(BLUE_LED_PIN, HIGH);
 		digitalWrite(RED_LED_PIN, LOW);
@@ -77,17 +76,11 @@ void setup()
 	}
 	digitalWrite(RED_LED_PIN, LOW);
 
-	// assume sensors have settled, record rough calibration
-	for (ii=0; ii<7; ii++)
-	{
-		OFFSET[ii] /= 1.0*SETTLE_LOOP;
-	}
-
 	// determine global coords relative to local coords
 	mag = sqrt(AN[3]*AN[3] + AN[4]*AN[4] + AN[5]*AN[5]);
-	g[0] = AN[3]/grav;
-	g[1] = AN[4]/grav;
-	g[2] = AN[5]/grav;
+	g[0] = AN[3]/mag;
+	g[1] = AN[4]/mag;
+	g[2] = AN[5]/mag;
 	// magnetic north
 	mag = g[0]*magX + g[1]*magY + g[2]*magZ;
 	m[0] = magX - g[0]*mag;
@@ -122,7 +115,7 @@ void setup()
 
 	// set timers for main loop
 	time = millis();
-	lasttime = time;
+	time_gps = time_mag = time;
 }
 
 void loop()
@@ -131,12 +124,13 @@ void loop()
 	// read current accel/gyro measurements
 	read_adc_raw();
 	// read magnetometer too..
-	Read_Compass();
-	// read gps
-	if (time-lasttime > GPS_DELAY)
+	if (time-time_mag > MAG_DELAY)
 	{
-		gps_update();
+		Read_Compass();
+		time_mag = time;
 	}
+	// read gps
+	gps_update();
 
 	// calculate DCM? or use kalman state?
 
@@ -164,13 +158,6 @@ void loop()
 	kalman_addmeasurement(8, &(AN[5]));
 	// update the filter
 	kalman_update();
-	//outSerial.println(kalman_getstate(0));
-/*	outSerial.print(accelX);
-	outSerial.print("\t");
-	outSerial.print(accelY);
-	outSerial.print("\t");
-	outSerial.println(accelZ);
-*/
-	lasttime = time;
+	outSerial.println(kalman_getstate(0));
 }
 

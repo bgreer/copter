@@ -1,6 +1,6 @@
 
-#define GPS_SETTLE 10
-#define GPS_BUFFERSIZE 120
+#define GPS_SETTLE 5
+#define GPS_BUFFERSIZE 100
 #define NMEA_OUTPUT_SENTENCES   "$PMTK314,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0*28\r\n" //Set GPGGA and GPVTG
 #define NMEA_BAUD_RATE_4800     "$PSRF100,1,4800,8,1,0*0E\r\n"
 #define NMEA_BAUD_RATE_9600     "$PSRF100,1,9600,8,1,0*0D\r\n"
@@ -37,13 +37,16 @@ uint8_t gps_counter;
 long origin_lon, origin_lat, origin_alt;
 float cos_origin_lat;
 
+uint8_t msg1[] = {0xB5, 0x62, 0x06, 0x08, 0x00, 0x00, 0x0E, 0x30};
+
 void gps_init()
 {
-  Serial.print(NMEA_OUTPUT_SENTENCES);
-  Serial.print(NMEA_OUTPUT_4HZ);
-  Serial.print(SBAS_ON);
-  Serial.print(DGPS_SBAS);
-  Serial.print(DATUM_GOOGLE);
+//	Serial.write(msg1, 8);
+//  Serial.print(NMEA_OUTPUT_SENTENCES);
+//  Serial.print(NMEA_OUTPUT_4HZ);
+//  Serial.print(SBAS_ON);
+//  Serial.print(DGPS_SBAS);
+//  Serial.print(DATUM_GOOGLE);
 	gps_counter = 0;
 	origin_lon = origin_lat, origin_alt = 0L;
 	gps_xpos = gps_ypos = gps_zpos = 0.0;
@@ -73,10 +76,11 @@ void gps_update ()
       }
       if (c=='\r')
       {
-        buffer[bufferidx++] = 0;
+        buffer[bufferidx++] = '\0';
         parse_nmea_gps();
+				bufferidx = 0;
       } else {
-        if (bufferidx < (GPS_BUFFERSIZE-1))
+        if (bufferidx < (GPS_BUFFERSIZE-1) && bufferidx > 0)
         {
           if (c=='*')
             GPS_checksum_calc = 0;
@@ -97,7 +101,6 @@ void parse_nmea_gps ()
 	long aux_deg;
 	long aux_min;
 	char *parseptr;
-
 	if (strncmp(buffer,"$GPGGA",6)==0) // position
 	{
 		if (buffer[bufferidx-4]=='*')
@@ -138,7 +141,6 @@ void parse_nmea_gps ()
 					gps_quality = GPS_OK;			// Medium (HDOP > 25)
 				else
 					gps_quality = GPS_GOOD;			// Good (HDOP < 25)
-				
 				if (gps_counter < GPS_SETTLE)
 				{
 					gps_counter++;
@@ -149,6 +151,7 @@ void parse_nmea_gps ()
 					cos_origin_lat = cos(((float)origin_lat)*0.01745329251/10000000.);
 					origin_lon = longitude;
 					origin_alt = altitude;
+					gps_counter++;
 				}
 				else
 				{
@@ -159,6 +162,7 @@ void parse_nmea_gps ()
 				}
 			} else {
 				// ERROR: checksum error
+//				outSerial.println("ERROR: checksum problem 1");
 			}
 		}
 	}
@@ -185,11 +189,13 @@ void parse_nmea_gps ()
 				}
 			} else {
 				// ERROR: checksum error
+//				outSerial.println("ERROR: checksum error 2");
 			}
 		}
 	} else {
 		bufferidx = 0;
 		// ERROR: bad sentence
+//		outSerial.println("ERROR: bad sentence");
 	}
 }
 
