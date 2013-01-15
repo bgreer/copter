@@ -31,7 +31,7 @@
 // serial ports
 #define SERIAL_DEBUG Serial
 #define SERIAL_WIRELESS Serial
-#define SERIAL_IMU Serial2
+#define SERIAL_IMU Serial3
 
 #define WIRELESS_BAUD 115200
 #define WIRELESS_BYTELIMIT 8
@@ -64,6 +64,16 @@
 #define OPCODE_CALIB 0x04 // run ESC calibration
 
 
+// for sending data back to the base station
+#define COMM_START 0x53
+#define COMM_END 0x45
+#define COMM_MODE_FREE 0x01
+#define COMM_MODE_IMU 0x02
+#define COMM_MODE_POS 0x03
+#define COMM_MODE_MOTOR 0x04
+#define COMM_MODE_BATT 0x05
+#define COMM_MODE_HELLO 0x06
+
 // Motor Control
 #define ESC_ARM_VAL 20
 #define ESC_MAX_VAL 179
@@ -72,6 +82,7 @@
 
 // motor control
 Servo motor[6];
+uint8_t motorval[6] = {0,0,0,0,0,0};
 uint8_t ESC_PIN[6] = {7,8,9,10,11,12};
 uint8_t GND_PIN[6] = {26,27,28,29,30,31};
 uint8_t armed = 0;
@@ -85,6 +96,12 @@ uint8_t wirelessPackage[WIRELESS_BYTELIMIT];
 uint8_t heartbeat = 0;
 uint32_t lastHeartbeat = 0;
 
+// debug info
+// 0 - IMU info
+// 1 - position info
+// 2 - motor values
+// 3 - battery levels
+uint8_t debugFlag = 0x00;
 
 // function prototypes
 
@@ -93,7 +110,9 @@ static void quick_start();
 // wireless.pde
 static void checkWireless();
 static void parseCommand();
+static void sendDebug();
 // motors.pde TODO: make my naming convention sane
+static void write_motors();
 static void init_motors();
 static void arm_motors();
 static void disarm_motors();

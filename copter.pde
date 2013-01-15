@@ -5,7 +5,7 @@
 // for main loop timing
 uint32_t timer_100Hz, timer_50Hz, timer_10Hz, timer_2Hz;
 uint32_t time;
-uint8_t counter_10Hz;
+uint8_t counter_10Hz, divider_1Hz;
 
 // flight mode stuff
 uint8_t flightMode = SAFEMODE;
@@ -73,6 +73,11 @@ void loop()
 #endif
 		}
 
+		// run this at 1Hz
+		if (divider_1Hz)
+			sendDebug();
+
+		divider_1Hz = !divider_1Hz;
 		timer_2Hz = time;
 	}
 }
@@ -90,6 +95,7 @@ static void quick_start()
 	timer_10Hz = time;
 	timer_2Hz = time;
 	counter_10Hz = 0;
+	divider_1Hz = 0;
 	// set pinmodes for esc lines TODO: redesign so this isnt needed
 	pinMode(GND_PIN[0], OUTPUT);
 	digitalWrite(GND_PIN[0], LOW);
@@ -116,7 +122,9 @@ static void quick_start()
 	pinMode(LED_STATUS, OUTPUT);
 	pinMode(LED_ARMED, OUTPUT);
 	// send quick hello over wireless
-	
+	SERIAL_WIRELESS.write(COMM_START);
+	SERIAL_WIRELESS.write(COMM_MODE_HELLO);
+	SERIAL_WIRELESS.write(COMM_END);
 
 	// should be ready to enter main loop now
 #if DEBUG

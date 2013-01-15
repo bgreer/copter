@@ -99,3 +99,37 @@ static void parseCommand()
 	wirelessOpcode = OPCODE_NOP;
 }
 
+// send debug info over wireless
+// there are flags deciding what to send and how often
+static void sendDebug()
+{
+	static uint8_t debugmode = 0;
+	// only enter loop if the debug flag bit is set
+	if ((debugFlag>>debugmode)&0x01)
+	{
+		SERIAL_WIRELESS.write(COMM_START);
+		// now figure out what to send
+		switch (debugmode)
+		{
+			case 0: // IMU
+				SERIAL_WIRELESS.write(COMM_MODE_IMU);
+				break;
+			case 1: // position
+				SERIAL_WIRELESS.write(COMM_MODE_POS);
+				break;
+			case 2: // motor values
+				SERIAL_WIRELESS.write(COMM_MODE_MOTOR);
+				SERIAL_WIRELESS.write(motorval,6);
+				break;
+			case 3: // battery levels
+				SERIAL_WIRELESS.write(COMM_MODE_BATT);
+				break;
+		}
+		SERIAL_WIRELESS.write(COMM_END);
+	}
+	debugmode++;
+	if (debugmode >= 4) debugmode = 0;
+}
+
+
+

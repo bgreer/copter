@@ -4,17 +4,17 @@ float gyroX, gyroY, gyroZ;
 void read_adc_raw()
 {
 	MPU6000_Read();
-	AN[0] = gyroX;
-	AN[1] = gyroY;
-	AN[2] = gyroZ;
+	AN[0] = (correct_gyroX(gyroX))*0.001;
+	AN[1] = (correct_gyroY(gyroY))*0.001;
+	AN[2] = (correct_gyroZ(gyroZ))*0.001;
 	AN[3] = correct_accelX(accelX)*0.01;
 	AN[4] = correct_accelY(accelY)*0.01;
 	AN[5] = correct_accelZ(accelZ)*0.01;
-/*	outSerial.print(AN[3],4);
+/*	outSerial.print(AN[0],5);
 	outSerial.print("\t");
-	outSerial.print(AN[4],4);
+	outSerial.print(AN[1],5);
 	outSerial.print("\t");
-	outSerial.println(AN[5],4);
+	outSerial.println(AN[2],5);
 */
 }
 

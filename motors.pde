@@ -1,4 +1,14 @@
 
+static void write_motors()
+{
+	motor[0].write(motorval[0]);
+	motor[1].write(motorval[1]);
+	motor[2].write(motorval[2]);
+	motor[3].write(motorval[3]);
+	motor[4].write(motorval[4]);
+	motor[5].write(motorval[5]);
+}
+
 // start the servo library things for each motor
 static void init_motors()
 {
@@ -32,12 +42,13 @@ static void arm_motors()
 // kill motors, then set arm flag
 static void disarm_motors()
 {
-	motor[0].write(0);
-	motor[1].write(0);
-	motor[2].write(0);
-	motor[3].write(0);
-	motor[4].write(0);
-	motor[5].write(0);
+	motorval[0] = 0;
+	motorval[1] = 0;
+	motorval[2] = 0;
+	motorval[3] = 0;
+	motorval[4] = 0;
+	motorval[5] = 0;
+	write_motors();
 	armed = 0;
 #if DEBUG
 	SERIAL_DEBUG.println("MOTORS DISARMED");

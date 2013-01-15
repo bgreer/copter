@@ -16,7 +16,7 @@ float ks[KALMAN_NUMSTATES]; // state vector
 float ks_old[KALMAN_NUMSTATES];
 float *km[KALMAN_NUMSTATES]; // measurement pointer vector
 uint32_t kalman_lastcalled;
-float dt, dt2;
+float dt2;
 
 // default initialization
 void kalman_init()
