@@ -81,7 +81,7 @@ void senddata(int data)
 {
   outindex = (outindex+1)%numlines;
   outbyte[outindex] = data;
-  outtext[outindex] = (char)outbyte[outindex];
+  outtext[outindex] = ""+(char)outbyte[outindex];
   port.write(data&0xff);
 }
 
@@ -91,6 +91,9 @@ int readdata()
   temp = port.read();
   inindex = (inindex+1)%numlines;
   inbyte[inindex] = temp;
-  intext[inindex] = (char)inbyte[inindex];
+  intext[inindex] = ""+(char)inbyte[inindex];
+  if (inbyte[inindex] == 'S') intext[inindex] = "SRTMSG";
+  if (inbyte[inindex] == 'E') intext[inindex] = "ENDMSG";
+  if (inbyte[inindex] == 'H') intext[inindex] = "HB";
   return temp;
 }

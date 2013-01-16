@@ -1,7 +1,7 @@
 import processing.serial.*;
 
 Serial port;
-char[] outtext, intext;
+String[] outtext, intext;
 int outindex, inindex;
 int[] outbyte, inbyte;
 int i, j, numlines, index;
@@ -10,25 +10,26 @@ int heartbeatindex, numpos, posindex;
 float[] xpos, ypos, zpos;
 float posscale, maxpos, vertscale, maxvert;
 float currposhor, currpostot;
-int lasthb, armed, gpslock, ohshit;
+int lasthb, armed, gpslock, ohshit, lowbatt, flightmode, distwarn;
 float yaw;
 
 BloomPProcess bloom;
-
 
 void setup()
 {
   frameRate(20);
   numlines = 23;
   numpos = 100;
-  armed = 1;
+  armed = 0;
   gpslock = 0;
-  ohshit = 1;
+  ohshit = 0;
+  flightmode = 1;
   yaw = 45;
+  distwarn = 0;
   bloom = new BloomPProcess();
   
-  outtext = new char[numlines];
-  intext = new char[numlines];
+  outtext = new String[numlines];
+  intext = new String[numlines];
   outbyte = new int[numlines];
   inbyte = new int[numlines];
   motorspeed = new int[6];
@@ -55,8 +56,8 @@ void setup()
   // init
   for (i=0; i<numlines; i++)
   {
-    intext[i] = '.';
-    outtext[i] = '.';
+    intext[i] = "";
+    outtext[i] = "";
     inbyte[i] = 0x00;
     outbyte[i] = 0x00;
   }
@@ -69,9 +70,9 @@ void setup()
   battlevel[0] = 100;
   battlevel[1] = 80;
   battlevel[2] = 60;
-  battlevel[3] = 40;
-  battlevel[4] = 20;
-  battlevel[5] = 10;
+  battlevel[3] = 80;
+  battlevel[4] = 55;
+  battlevel[5] = 60;
   
   heartbeatrecv();
   
@@ -91,6 +92,7 @@ void setup()
 void draw()
 {
   drawall();
+  systemcheck();
   
   // grab data coming through the wireless
   checkWireless();
@@ -113,7 +115,7 @@ void draw()
   heartbeat[heartbeatindex] = 0;
   
   // fake some position data
-  addpos(xpos[posindex]+random(1)-0.5,ypos[posindex]+random(1)-0.5,random(1)+1);
+  addpos(xpos[posindex]+random(1.5)-0.5,ypos[posindex]+random(1)-0.5,random(1)+1);
   yaw = yaw + 1;
   
   motorspeed[0] = motorspeed[0]+(int)(random(4)-2.0);
@@ -142,6 +144,23 @@ void addpos(float x, float y, float z)
   vertscale = 60./maxvert;
   currposhor = sqrt(x*x+y*y);
   currpostot = sqrt(x*x+y*y+z*z);
+}
+
+void systemcheck()
+{
+  // check battery levels
+  for (i=0; i<6; i++)
+  {
+    if (battlevel[i] < 50) lowbatt = 1;
+  }
+  for (i=0; i<6; i++)
+  {
+    if (battlevel[i] < 25) lowbatt = 2;
+  }
+  distwarn = 0;
+  if (currpostot > 400) distwarn = 1;
+  if (currpostot > 600) distwarn = 2;
+  if (currpostot > 800) distwarn = 3;
 }
 
 void sendheartbeat()
@@ -182,7 +201,7 @@ void drawall()
   // heartbeat
   rect(10,10,890,80);
   // status lights
-  rect(10,440,560,490);
+  rect(10,420,560,490);
   
   // position circle
   strokeWeight(1);
@@ -195,7 +214,7 @@ void drawall()
   line(610,330,850,330);
   line(730,210,730,450);
   // north
-  stroke(55,60,70);
+  stroke(5,60,70);
   line(730,210,730,330);
   // yaw
   stroke(12,60,70);
@@ -320,7 +339,7 @@ void drawall()
     line(580+i*3,170-zpos[index]*vertscale,580+i*3,170);
   }
   textAlign(LEFT);
-  fill(40-currpostot*40/800.,100,100);
+  fill(12,100,100);
   text("V: "+round(zpos[posindex])+"m", 590, 210);
   text("H: "+round(currposhor)+"m", 790, 210);
   text("R: "+round(currpostot)+"m", 690, 470);
@@ -334,10 +353,53 @@ void drawall()
   } else {
     fill(55,80,30);
   }
+  rect(110,430,190,450);
+  fill(0,0,0);
+  text("ARMED", 150, 445);
+  
+  if (lowbatt>1)
+  {
+    fill(1,90,80);
+  } else if (lowbatt>0) {
+    fill(5,80,80);
+  } else {
+    fill(55,80,30);
+  }
+  rect(20,430,100,450);
+  fill(0,0,0);
+  text("BATT", 60, 445);
+  
+  if (gpslock>0)
+  {
+    fill(12,80,80);
+  } else {
+    fill(55,80,30);
+  }
+  rect(200,430,280,450);
+  fill(0,0,0);
+  text("GPS", 240, 445);
+  
+  if (distwarn>0)
+  {
+    fill(10-distwarn*3,80,80);
+  } else {
+    fill(55,80,30);
+  }
+  rect(200,430,280,450);
+  fill(0,0,0);
+  text("DIST", 240, 445);
+  
+  if (flightmode==0)
+  {
+    fill(12,80,80);
+  } else {
+    fill(55,80,30);
+  }
   rect(20,460,100,480);
   fill(0,0,0);
-  text("ARMED", 60, 475);
-  if (gpslock>0)
+  text("SAFE", 60, 475);
+  
+  if (flightmode==1)
   {
     fill(12,80,80);
   } else {
@@ -345,14 +407,35 @@ void drawall()
   }
   rect(110,460,190,480);
   fill(0,0,0);
-  text("GPS", 150, 475);
-  if (ohshit>0)
+  text("LANDED", 150, 475);
+  
+  if (flightmode==2)
   {
-    fill(0,80,80);
+    fill(12,80,80);
   } else {
     fill(55,80,30);
   }
   rect(200,460,280,480);
   fill(0,0,0);
-  text("SHIT", 240, 475);
+  text("STABIL", 240, 475);
+  
+  if (flightmode==3)
+  {
+    fill(12,80,80);
+  } else {
+    fill(55,80,30);
+  }
+  rect(290,460,370,480);
+  fill(0,0,0);
+  text("ALTHLD", 330, 475);
+  
+  if (flightmode==4)
+  {
+    fill(12,80,80);
+  } else {
+    fill(55,80,30);
+  }
+  rect(380,460,460,480);
+  fill(0,0,0);
+  text("RTL", 420, 475);
 }
