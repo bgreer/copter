@@ -10,11 +10,11 @@ void read_adc_raw()
 	AN[3] = correct_accelX(accelX)*0.01;
 	AN[4] = correct_accelY(accelY)*0.01;
 	AN[5] = correct_accelZ(accelZ)*0.01;
-/*	outSerial.print(AN[0],5);
+/*	outSerial.print(AN[3],5);
 	outSerial.print("\t");
-	outSerial.print(AN[1],5);
+	outSerial.print(AN[4],5);
 	outSerial.print("\t");
-	outSerial.println(AN[2],5);
+	outSerial.println(AN[5],5);
 */
 }
 

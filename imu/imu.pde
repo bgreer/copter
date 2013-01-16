@@ -16,13 +16,13 @@
 
 #define correct_magX(x) (x*0.860897 + 12.7283) // in mG
 #define correct_magY(x) (x*-0.873852 - 104.083)
-#define correct_magZ(x) (x*0.981430 - 6.37676)
+#define correct_magZ(x) (x*-0.981430 + 6.37676)
 
 #define SERIAL_MUX_PIN 7
 #define RED_LED_PIN 5
 #define BLUE_LED_PIN 6
 
-#define SETTLE_LOOP 100 // times to poll sensors before moving on from setup
+#define SETTLE_LOOP 500 // times to poll sensors before moving on from setup
 #define GPS_DELAY 10 // update time for gps in milliseconds
 #define MAG_DELAY 100 // just because i dont care about the magnetometer
 
@@ -38,7 +38,7 @@ float AN[8], grav, mag, OFFSET[8];
 volatile uint8_t MuxSel = 0;
 volatile uint8_t analog_reference = DEFAULT;
 volatile int16_t analog_buffer[8];
-uint32_t time, time_gps, time_mag, lastcalled;
+uint32_t time, time_gps, time_mag, lastcalled, lastoutput, lastgps;
 float dt, theta, phi, psi;
 float g[3], m[3];
 
@@ -64,6 +64,7 @@ void setup()
 	MPU6000_Init();
 	gps_init();
 
+	imu.InitialQuat();
 	// start calibration / settling cycle
 	for (ii=0; ii<SETTLE_LOOP; ii++)
 	{
@@ -72,23 +73,22 @@ void setup()
 		// blink some stuff
 		digitalWrite(BLUE_LED_PIN, HIGH);
 		digitalWrite(RED_LED_PIN, LOW);
-		delay(50);
+		imu.AHRSupdate();
 		digitalWrite(BLUE_LED_PIN, LOW);
 		digitalWrite(RED_LED_PIN, HIGH);
-		delay(50);
 	}
 	digitalWrite(RED_LED_PIN, LOW);
 
-	imu.InitialQuat();
 	// set timers for main loop
 	time = millis();
 	time_gps = time_mag = time;
+	lastcalled = lastoutput = lastgps = 0;
 }
 
 void loop()
 {
 	time = micros();
-	if (time-lastcalled > 500)
+	if (time-lastcalled > 10)
 	{
 		dt = (time - lastcalled)*0.000001;
 		lastcalled = time;
@@ -97,14 +97,45 @@ void loop()
 		Read_Compass();
 		gps_update();
 		imu.AHRSupdate();
+	}
+	if (time-lastoutput > 10000)
+	{
+		lastoutput = time;
 		imu.GetEuler();
-		
-		outSerial.print(imu.pitch, 4);
+		outSerial.write('I');
+		outSerial.write((byte*)&(imu.pitch), 4);
+		outSerial.write((byte*)&(imu.roll), 4);
+		outSerial.write((byte*)&(imu.yaw), 4);
+		outSerial.write('\n'); // return
+
+/*		outSerial.print(imu.pitch, 4);
 		outSerial.print("\t");
 		outSerial.print(imu.roll, 4);
 		outSerial.print("\t");
 		outSerial.println(imu.yaw, 4);
-	
+*/
+	}
+	if (time-lastgps > 1000000)
+	{
+		lastgps = time;
+		outSerial.write('S');
+		outSerial.write((byte*)&(gps_quality), 1);
+		outSerial.write('\n'); // return	
+		if (new_gpspos && gps_quality >= GPS_POOR)
+		{
+			outSerial.write('P');
+			outSerial.write((byte*)&(gps_xpos), 4);
+			outSerial.write((byte*)&(gps_ypos), 4);
+			outSerial.write((byte*)&(gps_zpos), 4);
+			outSerial.write('\n'); // return	
+		}
+		if (new_gpsvel && gps_quality >= GPS_POOR)
+		{
+			outSerial.write('V');
+			outSerial.write((byte*)&(gps_xvel), 4);
+			outSerial.write((byte*)&(gps_yvel), 4);
+			outSerial.write('\n'); // return	
+		}
 	}
 }
 

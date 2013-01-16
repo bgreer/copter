@@ -90,12 +90,12 @@ void Read_Compass()
     magY = correct_magY(magY);
     magZ = correct_magZ(magZ);
 /*
-    Serial.print(magX);
-    Serial.print("\t");
-    Serial.print(magY);
-    Serial.print("\t");
-    Serial.print(magZ);
-    Serial.println("\t");
+    outSerial.print(magX);
+    outSerial.print("\t");
+    outSerial.print(magY);
+    outSerial.print("\t");
+    outSerial.print(magZ);
+    outSerial.println("\t");
 */
   }
 }
