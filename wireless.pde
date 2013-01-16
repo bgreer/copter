@@ -103,7 +103,6 @@ static void parseCommand()
 // there are flags deciding what to send and how often
 static void sendDebug()
 {
-	static uint8_t debugmode = 0;
 	// always send a heartbeat
 	SERIAL_WIRELESS.write(COMM_START);
 	SERIAL_WIRELESS.write(OPCODE_HEARTBEAT);
@@ -117,9 +116,15 @@ static void sendDebug()
 		{
 			case 0: // IMU
 				SERIAL_WIRELESS.write(COMM_MODE_IMU);
+				SERIAL_WIRELESS.write((uint8_t*)&pitch,4);
+				SERIAL_WIRELESS.write((uint8_t*)&roll,4);
+				SERIAL_WIRELESS.write((uint8_t*)&yaw,4);
 				break;
 			case 1: // position
 				SERIAL_WIRELESS.write(COMM_MODE_POS);
+				SERIAL_WIRELESS.write((uint8_t*)&gps_xpos,4);
+				SERIAL_WIRELESS.write((uint8_t*)&gps_ypos,4);
+				SERIAL_WIRELESS.write((uint8_t*)&gps_zpos,4);
 				break;
 			case 2: // motor values
 				SERIAL_WIRELESS.write(COMM_MODE_MOTOR);
@@ -127,9 +132,11 @@ static void sendDebug()
 				break;
 			case 3: // battery levels
 				SERIAL_WIRELESS.write(COMM_MODE_BATT);
+				SERIAL_WIRELESS.write(batterylevel,6);
 				break;
 		}
 		SERIAL_WIRELESS.write(COMM_END);
+		SERIAL_WIRELESS.write('\r');
 	}
 	debugmode++;
 	if (debugmode >= 4) debugmode = 0;

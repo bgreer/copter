@@ -31,7 +31,7 @@
 // serial ports
 #define SERIAL_DEBUG Serial
 #define SERIAL_WIRELESS Serial
-#define SERIAL_IMU Serial3
+#define SERIAL_IMU Serial2
 
 #define WIRELESS_BAUD 115200
 #define WIRELESS_BYTELIMIT 8
@@ -80,6 +80,13 @@
 
 // // // Variables
 
+// state variables
+float pitch, roll, yaw;
+uint8_t gps_quality;
+float gps_xpos, gps_ypos, gps_zpos;
+float gps_xvel, gps_yvel;
+uint8_t batterylevel[6] = {100,100,100,100,100,100};
+
 // motor control
 Servo motor[6];
 uint8_t motorval[6] = {0,0,0,0,0,0};
@@ -91,6 +98,7 @@ uint8_t armed = 0;
 uint8_t wirelessOpcode = 0x00;
 uint8_t wirelessLength = 0;
 uint8_t wirelessPackage[WIRELESS_BYTELIMIT];
+uint8_t debugmode = 0;
 
 // wireless heartbeat
 uint8_t heartbeat = 0;
@@ -101,7 +109,7 @@ uint32_t lastHeartbeat = 0;
 // 1 - position info
 // 2 - motor values
 // 3 - battery levels
-uint8_t debugFlag = 0x00;
+uint8_t debugFlag = 0xff;
 
 // function prototypes
 
@@ -117,6 +125,7 @@ static void init_motors();
 static void arm_motors();
 static void disarm_motors();
 static void calibrate_motors();
-
+// state.pde
+void checkIMU();
 
 

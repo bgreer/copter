@@ -35,7 +35,7 @@ void loop()
 	if (time-timer_100Hz > 10000)
 	{
 		// do something?
-		delay(1);
+		checkIMU();
 		timer_100Hz = time;
 	}
 
@@ -114,6 +114,7 @@ static void quick_start()
 	// start serial ports
 	SERIAL_WIRELESS.begin(WIRELESS_BAUD);
 	SERIAL_IMU.begin(IMU_BAUD);
+	SERIAL_IMU.setTimeout(10);
 #if DEBUG
 	SERIAL_DEBUG.begin(DEBUG_BAUD);
 #endif
