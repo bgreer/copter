@@ -104,6 +104,10 @@ static void parseCommand()
 static void sendDebug()
 {
 	static uint8_t debugmode = 0;
+	// always send a heartbeat
+	SERIAL_WIRELESS.write(COMM_START);
+	SERIAL_WIRELESS.write(OPCODE_HEARTBEAT);
+	SERIAL_WIRELESS.write(COMM_END);
 	// only enter loop if the debug flag bit is set
 	if ((debugFlag>>debugmode)&0x01)
 	{
