@@ -22,7 +22,7 @@
 #define RED_LED_PIN 5
 #define BLUE_LED_PIN 6
 
-#define SETTLE_LOOP 500 // times to poll sensors before moving on from setup
+#define SETTLE_LOOP 250 // times to poll sensors before moving on from setup
 #define GPS_DELAY 10 // update time for gps in milliseconds
 #define MAG_DELAY 100 // just because i dont care about the magnetometer
 
@@ -74,8 +74,10 @@ void setup()
 		digitalWrite(BLUE_LED_PIN, HIGH);
 		digitalWrite(RED_LED_PIN, LOW);
 		imu.AHRSupdate();
+		delay(5);
 		digitalWrite(BLUE_LED_PIN, LOW);
 		digitalWrite(RED_LED_PIN, HIGH);
+		delay(5);
 	}
 	digitalWrite(RED_LED_PIN, LOW);
 
@@ -124,16 +126,16 @@ void loop()
 		if (new_gpspos && gps_quality >= GPS_POOR)
 		{
 			outSerial.write('P');
-			outSerial.write((byte*)&(gps_xpos), 4);
-			outSerial.write((byte*)&(gps_ypos), 4);
-			outSerial.write((byte*)&(gps_zpos), 4);
+			outSerial.write((uint8_t*)&gps_xpos, 4);
+			outSerial.write((uint8_t*)&gps_ypos, 4);
+			outSerial.write((uint8_t*)&gps_zpos, 4);
 			outSerial.write('\n'); // return	
 		}
 		if (new_gpsvel && gps_quality >= GPS_POOR)
 		{
 			outSerial.write('V');
-			outSerial.write((byte*)&(gps_xvel), 4);
-			outSerial.write((byte*)&(gps_yvel), 4);
+			outSerial.write((uint8_t*)&gps_xvel, 4);
+			outSerial.write((uint8_t*)&gps_yvel, 4);
 			outSerial.write('\n'); // return	
 		}
 	}
