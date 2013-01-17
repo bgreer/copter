@@ -61,6 +61,7 @@ void checkWireless()
 
 void parseCommand()
 {
+  int temp;
   print("parsing command: ");
   println(hex(wirelessOpcode));
 
@@ -70,11 +71,37 @@ void parseCommand()
       heartbeatrecv();
       println("HEARTBEAT");
       break;
+     case 0x02:
+       println("IMU DATA");
+       pitch = b2f(wirelessPackage,0);
+       roll = b2f(wirelessPackage,4);
+       yaw = b2f(wirelessPackage,8);
+       println(yaw);
+       break;
+     case 0x03:
+       println("POS DATA");
+       addpos(b2f(wirelessPackage,0), b2f(wirelessPackage,4), b2f(wirelessPackage,8));
+       break;
+     case 0x04:
+       println("MOTOR DATA");
+       for (i=0; i<6; i++)
+         motorspeed[i] = (int)(wirelessPackage[i]);
+       break;
+     case 0x05:
+       println("BATT DATA");
+       for (i=0; i<6; i++)
+         battlevel[i] = (int)(wirelessPackage[i]);
+       break;
   }
   // at the end of execution, reset opcode
 
   wirelessOpcode = byte(0);
   
+}
+
+float b2f(byte[] data, int offset) {
+  String hexint=hex(data[offset+3])+hex(data[offset+2])+hex(data[offset+1])+hex(data[offset+0]);
+  return Float.intBitsToFloat(unhex(hexint));
 }
 
 void senddata(int data)

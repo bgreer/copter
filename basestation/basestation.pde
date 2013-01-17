@@ -1,4 +1,4 @@
-import processing.serial.*;
+ import processing.serial.*;
 
 Serial port;
 String[] outtext, intext;
@@ -11,7 +11,7 @@ float[] xpos, ypos, zpos;
 float posscale, maxpos, vertscale, maxvert;
 float currposhor, currpostot;
 int lasthb, armed, gpslock, ohshit, lowbatt, flightmode, distwarn;
-float yaw;
+float yaw, roll, pitch, speed;
 
 BloomPProcess bloom;
 
@@ -26,6 +26,7 @@ void setup()
   flightmode = 1;
   yaw = 45;
   distwarn = 0;
+  speed = 0.0;
   bloom = new BloomPProcess();
   
   outtext = new String[numlines];
@@ -61,18 +62,6 @@ void setup()
     inbyte[i] = 0x00;
     outbyte[i] = 0x00;
   }
-  motorspeed[0] = 90;
-  motorspeed[1] = 50;
-  motorspeed[2] = 110;
-  motorspeed[3] = 140;
-  motorspeed[4] = 150;
-  motorspeed[5] = 130;
-  battlevel[0] = 100;
-  battlevel[1] = 80;
-  battlevel[2] = 60;
-  battlevel[3] = 80;
-  battlevel[4] = 55;
-  battlevel[5] = 60;
   
   heartbeatrecv();
   
@@ -115,13 +104,8 @@ void draw()
   heartbeat[heartbeatindex] = 0;
   
   // fake some position data
-  addpos(xpos[posindex]+random(1.5)-0.5,ypos[posindex]+random(1)-0.5,random(1)+1);
-  yaw = yaw + 1;
-  
-  motorspeed[0] = motorspeed[0]+(int)(random(4)-2.0);
-  motorspeed[1] = motorspeed[1]+(int)(random(4)-2.0);
-  motorspeed[2] = motorspeed[2]+(int)(random(4)-2.0);
-  battlevel[0] = battlevel[0]+(int)(random(4)-2.05);
+  //addpos(xpos[posindex]+random(1.5)-0.5,ypos[posindex]+random(1)-0.5,random(1)+1);
+  //yaw = yaw + 1;
   
   bloom.ApplyBloom();
 }
@@ -149,6 +133,7 @@ void addpos(float x, float y, float z)
 void systemcheck()
 {
   // check battery levels
+  lowbatt = 0;
   for (i=0; i<6; i++)
   {
     if (battlevel[i] < 50) lowbatt = 1;
@@ -202,6 +187,8 @@ void drawall()
   rect(10,10,890,80);
   // status lights
   rect(10,420,560,490);
+  // orientation
+  rect(10,90,560,410);
   
   // position circle
   strokeWeight(1);
@@ -326,7 +313,11 @@ void drawall()
   noStroke();
   for (i=0; i<numpos; i++)
   {
-    fill(12,i*90/numpos,100*i/numpos);
+    if (i==numpos-1) {
+      fill(12,i*90/numpos,100*i/numpos);
+    } else {
+      fill(12,i*60/numpos,70*i/numpos);
+    }
     index = (i+posindex+1)%numpos;
     ellipse(730+xpos[index]*posscale,330-ypos[index]*posscale,3,3);
   }
@@ -438,4 +429,72 @@ void drawall()
   rect(380,460,460,480);
   fill(0,0,0);
   text("RTL", 420, 475);
+  
+  // orientation stuff
+  textAlign(RIGHT);
+  stroke(12,100,100);
+  strokeWeight(2);
+  line(20,100,80,100);
+  line(20,400,80,400);
+  line(80,100,80,400);
+  line(550,100,490,100);
+  line(550,400,490,400);
+  line(490,100,490,400);
+  stroke(12-max(pitch,20)+20,100,100);
+  line(80,250,90,260);
+  line(80,250,90,240);
+  fill(12,100,100);
+  stroke(12,100,100);
+  for (i=-90; i<=90; i+=5)
+  {
+    if (abs(pitch-i) <= 29)
+    {
+      text(""+i, 60, 255+(pitch-i)*5);
+      line(70,250+(pitch-i)*5,80,250+(pitch-i)*5);
+    }
+  }
+  
+  // roll lines
+  line(255,252,280,252);
+  line(255,248,280,248);
+  line(290,252,315,252);
+  line(290,248,315,248);
+
+  line(285-150*cos(-roll*0.01745),250-150*sin(-roll*0.01745)+pitch*2,285+150*cos(-roll*0.01745),250+150*sin(-roll*0.01745)+pitch*2);
+  line(285-10*sin(roll*0.01745),250-10*cos(-roll*0.01745)+pitch*2,285+10*sin(roll*0.01745),250+10*cos(-roll*0.01745)+pitch*2);
+  
+  if (pitch > -50)
+    line(285-20*cos(-roll*0.01745),200-20*sin(-roll*0.01745)+pitch*2,285+20*cos(-roll*0.01745),200+20*sin(-roll*0.01745)+pitch*2);
+  if (pitch > -30)
+    line(285-20*cos(-roll*0.01745),150-20*sin(-roll*0.01745)+pitch*2,285+20*cos(-roll*0.01745),150+20*sin(-roll*0.01745)+pitch*2);
+  if (pitch < 50)
+    line(285-20*cos(-roll*0.01745),300-20*sin(-roll*0.01745)+pitch*2,285+20*cos(-roll*0.01745),300+20*sin(-roll*0.01745)+pitch*2);
+  if (pitch < 30)
+    line(285-20*cos(-roll*0.01745),350-20*sin(-roll*0.01745)+pitch*2,285+20*cos(-roll*0.01745),350+20*sin(-roll*0.01745)+pitch*2);
+  
+  textAlign(CENTER);
+  if (yaw < 45.0 || yaw >= 315)
+    text(round(yaw)+"N", 160, 400);
+  if (yaw < 225 && yaw >= 135)
+    text(round(yaw)+"S", 160, 400);
+  if (yaw < 135.0 && yaw >= 45)
+    text(round(yaw)+"E", 160, 400);
+  if (yaw < 315.0 && yaw >= 225)
+    text(round(yaw)+"W", 160, 400);
+  
+  text(round(speed)+" m/s", 375, 400);
+  
+  line(490,250,480,260);
+  line(490,250,480,240);
+  //text(""+round(round(zpos[posindex]*3.28) - floor(zpos[posindex]*0.328)*10.), 550, 255);
+  textAlign(LEFT);
+  for (i=-1000; i<=1000; i+=10)
+  {
+    if (abs(zpos[posindex]*3.28-i) <= 29)
+    {
+      text(""+i, 510, 255+(zpos[posindex]*3.28-i)*5);
+      line(490,250+(zpos[posindex]*3.28-i)*5,500,250+(zpos[posindex]*3.28-i)*5);
+    }
+  }
+  
 }
