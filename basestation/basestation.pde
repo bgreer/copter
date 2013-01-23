@@ -12,6 +12,7 @@ float posscale, maxpos, vertscale, maxvert;
 float currposhor, currpostot;
 int lasthb, armed, gpslock, ohshit, lowbatt, flightmode, distwarn;
 float yaw, roll, pitch, speed;
+int throttle;
 
 BloomPProcess bloom;
 
@@ -28,6 +29,7 @@ void setup()
   distwarn = 0;
   speed = 0.0;
   bloom = new BloomPProcess();
+  throttle = 16;
   
   outtext = new String[numlines];
   intext = new String[numlines];
@@ -71,7 +73,7 @@ void setup()
   textAlign(LEFT);
   textFont(createFont("Courier New", 18));
   
-  port = new Serial(this, "/dev/ttyACM0", 115200);
+  port = new Serial(this, "/dev/ttyUSB0", 38400);
   
   sendheartbeat();
   lasthb = millis();
@@ -85,7 +87,7 @@ void draw()
   
   // grab data coming through the wireless
   checkWireless();
-  if (wirelessOpcode>0) parseCommand();
+  if (wirelessLength>0) parseCommand();
   //while (port.available()>0)
   //{
   //  inindex = (inindex+1)%numlines;
@@ -161,11 +163,49 @@ void heartbeatrecv()
 }
 
 void keyPressed() {
-  int keyIndex = -1;
-  if (key >= 'A' && key <= 'Z') {
-    keyIndex = key - 'A';
-  } else if (key >= 'a' && key <= 'z') {
-    keyIndex = key - 'a';
+  println(keyCode);
+  switch (keyCode)
+  {
+    case 38:
+      // up
+      throttle+=8;
+      if (throttle > 179) throttle = 179;
+      senddata('S');
+      senddata(0x05);
+      senddata(throttle);
+      senddata('E');
+      break;
+    case 40:
+      // down
+      throttle-=6;
+      if (throttle < 16) throttle = 16;
+      senddata('S');
+      senddata(0x05);
+      senddata(throttle);
+      senddata('E');
+      break;
+    case 8:
+      // esc, kill motors
+      throttle = 0;
+      senddata('S');
+      senddata(0x03);
+      senddata('E');
+      break;
+    case 65:
+      // a, arm motors
+      throttle = 16;
+      senddata('S');
+      senddata(0x02);
+      senddata('E');
+      break;
+    case 66:
+      // b, constant throttle
+      throttle = 110;
+      senddata('S');
+      senddata(0x05);
+      senddata(throttle);
+      senddata('E');
+      break;
   }
 }
 
