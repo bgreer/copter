@@ -72,6 +72,7 @@ static void checkWireless()
 // reset the opcode at the end
 static void parseCommand()
 {
+	int i;
 #if DEBUG
 	SERIAL_DEBUG.print("parsing command: ");
 	SERIAL_DEBUG.println(wirelessOpcode, HEX);
@@ -94,19 +95,25 @@ static void parseCommand()
 		case OPCODE_CALIB:
 			calibrate_motors();
 			break;
+		case OPCODE_THROTTLE:
+			throttle = wirelessPackage[0];
+			break;
 	}
 	// at the end of execution, reset opcode
 	wirelessOpcode = OPCODE_NOP;
+}
+
+static void sendHeartbeat()
+{
+	SERIAL_WIRELESS.write(COMM_START);
+	SERIAL_WIRELESS.write(OPCODE_HEARTBEAT);
+	SERIAL_WIRELESS.write(COMM_END);
 }
 
 // send debug info over wireless
 // there are flags deciding what to send and how often
 static void sendDebug()
 {
-	// always send a heartbeat
-	SERIAL_WIRELESS.write(COMM_START);
-	SERIAL_WIRELESS.write(OPCODE_HEARTBEAT);
-	SERIAL_WIRELESS.write(COMM_END);
 	// only enter loop if the debug flag bit is set
 	if ((debugFlag>>debugmode)&0x01)
 	{
@@ -133,6 +140,11 @@ static void sendDebug()
 			case 3: // battery levels
 				SERIAL_WIRELESS.write(COMM_MODE_BATT);
 				SERIAL_WIRELESS.write(batterylevel,6);
+				break;
+			case 4: // flight stats
+				SERIAL_WIRELESS.write(COMM_MODE_STATS);
+				SERIAL_WIRELESS.write(flightMode);
+				SERIAL_WIRELESS.write(flightStats);
 				break;
 		}
 		SERIAL_WIRELESS.write(COMM_END);

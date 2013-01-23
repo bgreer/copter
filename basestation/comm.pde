@@ -1,5 +1,6 @@
 byte wirelessOpcode = 0x00;
 int wirelessLength = 0;
+int wirelessNewData = 0;
 byte[] wirelessPackage = new byte[100];
 
 void checkWireless()
@@ -62,8 +63,8 @@ void checkWireless()
 void parseCommand()
 {
   int temp;
-  print("parsing command: ");
-  println(hex(wirelessOpcode));
+  //print("parsing command: ");
+  //println(hex(wirelessOpcode));
 
   switch (wirelessOpcode)
   {
@@ -85,7 +86,10 @@ void parseCommand()
      case 0x04:
        println("MOTOR DATA");
        for (i=0; i<6; i++)
+       {
          motorspeed[i] = (int)(wirelessPackage[i]);
+         if (motorspeed[i] < 0) motorspeed[i] += 127;
+       }
        break;
      case 0x05:
        println("BATT DATA");

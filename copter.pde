@@ -6,6 +6,7 @@
 uint32_t timer_100Hz, timer_50Hz, timer_10Hz, timer_2Hz;
 uint32_t time;
 uint8_t counter_10Hz, divider_1Hz;
+unsigned long armtime;
 
 // flight mode stuff
 uint8_t flightMode = SAFEMODE;
@@ -34,8 +35,11 @@ void loop()
 	time = micros();
 	if (time-timer_100Hz > 10000)
 	{
-		// do something?
+		// check the IMU serial comm for data
 		checkIMU();
+		// use this data to stabilize
+		set_motorspeed(0.0, 0.0, 0.0, 0.0);
+
 		timer_100Hz = time;
 	}
 
@@ -53,6 +57,7 @@ void loop()
 		// update flight mode
 		// if no wireless heartbeat, go into safe mode
 		if (!heartbeat) flightMode = SAFEMODE;
+
 		timer_10Hz = time;
 		counter_10Hz = !counter_10Hz;
 	}
@@ -73,9 +78,34 @@ void loop()
 #endif
 		}
 
+		sendDebug();
 		// run this at 1Hz
 		if (divider_1Hz)
-			sendDebug();
+			sendHeartbeat();
+
+		// check physical arming
+#if ALLOW_PHYSICAL_ARMING
+		if (armed)
+		{
+			if (digitalRead(PIN_ARM_BUTTON) == HIGH)
+			{
+				disarm_motors();
+				armtime = millis();
+			}
+		} else {
+			if (digitalRead(PIN_ARM_BUTTON) == HIGH)
+			{
+				if (millis() - armtime > 2000)
+				{
+					// arm!
+					arm_motors();
+					while (digitalRead(PIN_ARM_BUTTON) == HIGH) {}
+				}
+			} else {
+				armtime = millis();
+			}
+		}
+#endif
 
 		divider_1Hz = !divider_1Hz;
 		timer_2Hz = time;
@@ -94,6 +124,7 @@ static void quick_start()
 	timer_50Hz = time;
 	timer_10Hz = time;
 	timer_2Hz = time;
+	armtime = 0;
 	counter_10Hz = 0;
 	divider_1Hz = 0;
 	// set pinmodes for esc lines TODO: redesign so this isnt needed
@@ -122,6 +153,7 @@ static void quick_start()
 	// set pinmodes and states
 	pinMode(LED_STATUS, OUTPUT);
 	pinMode(LED_ARMED, OUTPUT);
+	pinMode(PIN_ARM_BUTTON, INPUT);
 	// send quick hello over wireless
 	SERIAL_WIRELESS.write(COMM_START);
 	SERIAL_WIRELESS.write(COMM_MODE_HELLO);

@@ -7,7 +7,12 @@
 //#include <avr/pgmspace.h>
 #include <math.h>
 
-#define DEBUG 1
+#define ESC_ARM_VAL 16
+#define ESC_MAX_VAL 179
+#define PIN_ARM_BUTTON 22
+
+#define DEBUG 0
+#define ALLOW_PHYSICAL_ARMING 0
 
 // some math stuff
 #define ToRad(x) (x*0.01745329252)
@@ -30,13 +35,13 @@
 
 // serial ports
 #define SERIAL_DEBUG Serial
-#define SERIAL_WIRELESS Serial
+#define SERIAL_WIRELESS Serial3
 #define SERIAL_IMU Serial2
 
-#define WIRELESS_BAUD 115200
+#define WIRELESS_BAUD 38400
 #define WIRELESS_BYTELIMIT 8
 #define IMU_BAUD 115200
-#define DEBUG_BAUD 115200
+#define DEBUG_BAUD 38400
 
 // heartbeat timeout in microseconds
 // set to 2x the heartbeat time or something
@@ -62,7 +67,7 @@
 #define OPCODE_ARM 0x02 // arm motors
 #define OPCODE_KILL 0x03 // kill motors
 #define OPCODE_CALIB 0x04 // run ESC calibration
-
+#define OPCODE_THROTTLE 0x05 // set throttle
 
 // for sending data back to the base station
 #define COMM_START 0x53
@@ -73,6 +78,7 @@
 #define COMM_MODE_MOTOR 0x04
 #define COMM_MODE_BATT 0x05
 #define COMM_MODE_HELLO 0x06
+#define COMM_MODE_STATS 0x07
 
 // Motor Control
 #define ESC_ARM_VAL 20
@@ -90,9 +96,15 @@ uint8_t batterylevel[6] = {100,100,100,100,100,100};
 // motor control
 Servo motor[6];
 uint8_t motorval[6] = {0,0,0,0,0,0};
-uint8_t ESC_PIN[6] = {7,8,9,10,11,12};
+uint8_t ESC_PIN[6] = {7,8,9,10,11,13};
 uint8_t GND_PIN[6] = {26,27,28,29,30,31};
 uint8_t armed = 0;
+uint8_t throttle = 0;
+
+// flight status
+// 0 - armed
+// 1 - hitting motor bounds
+uint8_t flightStats = 0x00;
 
 // wireless
 uint8_t wirelessOpcode = 0x00;
@@ -109,6 +121,7 @@ uint32_t lastHeartbeat = 0;
 // 1 - position info
 // 2 - motor values
 // 3 - battery levels
+// 4 - flight info
 uint8_t debugFlag = 0xff;
 
 // function prototypes
