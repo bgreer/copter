@@ -88,13 +88,18 @@ void parseCommand()
        for (i=0; i<6; i++)
        {
          motorspeed[i] = (int)(wirelessPackage[i]);
-         if (motorspeed[i] < 0) motorspeed[i] += 127;
+         if (motorspeed[i] < 0) motorspeed[i] = 255+motorspeed[i];
        }
        break;
      case 0x05:
        println("BATT DATA");
        for (i=0; i<6; i++)
          battlevel[i] = (int)(wirelessPackage[i]);
+       break;
+     case 0x07:
+       println("FLIGHT STATS");
+       flightmode = (int)(wirelessPackage[0]);
+       armed = (int)(wirelessPackage[1]);
        break;
   }
   // at the end of execution, reset opcode

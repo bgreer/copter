@@ -11,14 +11,14 @@ float[] xpos, ypos, zpos;
 float posscale, maxpos, vertscale, maxvert;
 float currposhor, currpostot;
 int lasthb, armed, gpslock, ohshit, lowbatt, flightmode, distwarn;
-float yaw, roll, pitch, speed;
-int throttle;
+float yaw, roll, pitch, speed, alt_zero;
+int userLift, userPitch, userRoll, userYaw;
 
 BloomPProcess bloom;
 
 void setup()
 {
-  frameRate(20);
+  frameRate(10);
   numlines = 23;
   numpos = 100;
   armed = 0;
@@ -29,7 +29,6 @@ void setup()
   distwarn = 0;
   speed = 0.0;
   bloom = new BloomPProcess();
-  throttle = 16;
   
   outtext = new String[numlines];
   intext = new String[numlines];
@@ -48,8 +47,9 @@ void setup()
   posscale = 1.0;
   vertscale = 1.0;
   
-  
-  
+  alt_zero = 1600.0;
+  for (i=0; i<numpos; i++)
+    zpos[i] = alt_zero;
   
   colorMode(HSB, 100);
   size(1200, 800);
@@ -95,7 +95,7 @@ void draw()
   //  intext[inindex] = (char)inbyte[inindex];
   //}
   
-  if (millis()-lasthb > 1000)
+  if (millis()-lasthb > 800)
   {
     sendheartbeat();
     lasthb = millis();
@@ -124,12 +124,12 @@ void addpos(float x, float y, float z)
   for (i=0; i<numpos; i++)
   {
     if (sqrt(xpos[i]*xpos[i]+ypos[i]*ypos[i]) > maxpos) maxpos = sqrt(xpos[i]*xpos[i]+ypos[i]*ypos[i]);
-    if (abs(zpos[i]) > maxvert) maxvert = abs(zpos[i]);
+    if (abs(zpos[i]-alt_zero) > maxvert) maxvert = abs(zpos[i]-alt_zero);
   }
   posscale = 120./maxpos;
   vertscale = 60./maxvert;
   currposhor = sqrt(x*x+y*y);
-  currpostot = sqrt(x*x+y*y+z*z);
+  currpostot = sqrt(x*x+y*y+(z-alt_zero)*(z-alt_zero));
 }
 
 void systemcheck()
@@ -166,47 +166,117 @@ void keyPressed() {
   println(keyCode);
   switch (keyCode)
   {
-    case 38:
+    case 16:
       // up
-      throttle+=8;
-      if (throttle > 179) throttle = 179;
-      senddata('S');
-      senddata(0x05);
-      senddata(throttle);
-      senddata('E');
+      userLift=10;
+      sendInput();
+      userLift=0;
       break;
-    case 40:
+    case 17:
       // down
-      throttle-=6;
-      if (throttle < 16) throttle = 16;
-      senddata('S');
-      senddata(0x05);
-      senddata(throttle);
-      senddata('E');
+      userLift=-10;
+      sendInput();
+      userLift=0;
       break;
     case 8:
       // esc, kill motors
-      throttle = 0;
+      userLift = 0;
       senddata('S');
       senddata(0x03);
       senddata('E');
       break;
     case 65:
       // a, arm motors
-      throttle = 16;
+      userLift = 0;
       senddata('S');
       senddata(0x02);
       senddata('E');
       break;
-    case 66:
-      // b, constant throttle
-      throttle = 110;
+    case 39:
+      // right
+      userRoll=50;
+      sendInput();
+      break;
+    case 37:
+      // left
+      userRoll=-50;
+      sendInput();
+      break;
+      
+    case 38:
+      // up
+      userPitch=-50;
+      sendInput();
+      break;
+    case 40:
+      // down
+      userPitch=+50;
+      sendInput();
+      break;
+      
+    case 81:
+      // yaw left (Q)
+      userYaw=-5;
+      sendInput();
+      userYaw=0;
+      break;
+    case 69:
+      // yaw right (E)
+      userYaw=+5;
+      sendInput();
+      userYaw=0;
+      break;
+      
+    case 83: // s, flightmode = stabilize
       senddata('S');
-      senddata(0x05);
-      senddata(throttle);
+      senddata(0x06);
+      senddata(0x02);
       senddata('E');
       break;
+    
+      
+    case 48: // 0, zero out the altitude
+      alt_zero = zpos[posindex];
+      break;
   }
+}
+
+void keyReleased()
+{
+  switch (keyCode)
+  {
+    case 39:
+      // right
+      userRoll=0;
+      sendInput();
+      break;
+    case 37:
+      // left
+      userRoll=0;
+      sendInput();
+      break;
+    case 38:
+      // up
+      userPitch=0;
+      sendInput();
+      break;
+    case 40:
+      // down
+      userPitch=0;
+      sendInput();
+      break;
+  }
+}
+
+void sendInput()
+{
+  senddata('S');
+  senddata(0x07);
+  senddata(userPitch);
+  senddata(userRoll);
+  senddata(userYaw);
+  senddata(userLift);
+  senddata('E');
 }
 
 void drawall()
@@ -312,17 +382,17 @@ void drawall()
   // motor speed
   strokeWeight(0);
   fill(55+max(0,motorspeed[0]-120.),70,90,50);
-  ellipse(745,558,motorspeed[0]*(50./180.),motorspeed[0]*(50./180.)); // motor 1
+  ellipse(746,559,motorspeed[0]*(50./180.),motorspeed[0]*(50./180.)); // motor 1
   fill(55+max(0,motorspeed[1]-120.),70,90,50);
-  ellipse(795,645,motorspeed[1]*(50./180.),motorspeed[1]*(50./180.)); // motor 2
+  ellipse(796,646,motorspeed[1]*(50./180.),motorspeed[1]*(50./180.)); // motor 2
   fill(55+max(0,motorspeed[2]-120.),70,90,50);
-  ellipse(745,732,motorspeed[2]*(50./180.),motorspeed[2]*(50./180.)); // motor 3
+  ellipse(746,733,motorspeed[2]*(50./180.),motorspeed[2]*(50./180.)); // motor 3
   fill(55+max(0,motorspeed[3]-120.),70,90,50);
-  ellipse(645,732,motorspeed[3]*(50./180.),motorspeed[3]*(50./180.)); // motor 4
+  ellipse(646,733,motorspeed[3]*(50./180.),motorspeed[3]*(50./180.)); // motor 4
   fill(55+max(0,motorspeed[4]-120.),70,90,50);
-  ellipse(595,645,motorspeed[4]*(50./180.),motorspeed[4]*(50./180.)); // motor 5
+  ellipse(596,646,motorspeed[4]*(50./180.),motorspeed[4]*(50./180.)); // motor 5
   fill(55+max(0,motorspeed[5]-120.),70,90,50);
-  ellipse(645,558,motorspeed[5]*(50./180.),motorspeed[5]*(50./180.)); // motor 6
+  ellipse(646,559,motorspeed[5]*(50./180.),motorspeed[5]*(50./180.)); // motor 6
   
   
   // battery level
@@ -367,13 +437,13 @@ void drawall()
   for (i=0; i<numpos; i++)
   {
     index = (i+posindex+1)%numpos;
-    line(580+i*3,170-zpos[index]*vertscale,580+i*3,170);
+    line(580+i*3,170-(zpos[index]-alt_zero)*vertscale,580+i*3,170);
   }
   textAlign(LEFT);
   fill(12,100,100);
-  text("V: "+round(zpos[posindex])+"m", 590, 210);
-  text("H: "+round(currposhor)+"m", 790, 210);
-  text("R: "+round(currpostot)+"m", 690, 470);
+  text("V: "+round((zpos[posindex]-alt_zero)*10.)/10.+"m", 590, 210);
+  text("H: "+round(currposhor*10.)/10.+"m", 790, 210);
+  text("R: "+round(currpostot*10.)/10.+"m", 690, 470);
   
   // status lights
   textAlign(CENTER);
