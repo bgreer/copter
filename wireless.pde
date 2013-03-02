@@ -72,11 +72,10 @@ static void checkWireless()
 // reset the opcode at the end
 static void parseCommand()
 {
-	int i;
-#if DEBUG
-	SERIAL_DEBUG.print("parsing command: ");
-	SERIAL_DEBUG.println(wirelessOpcode, HEX);
-#endif
+//#if DEBUG
+//	SERIAL_DEBUG.print("parsing command: ");
+//	SERIAL_DEBUG.println(wirelessOpcode, HEX);
+//#endif
 	switch (wirelessOpcode)
 	{
 		case OPCODE_HEARTBEAT:
@@ -97,6 +96,27 @@ static void parseCommand()
 			break;
 		case OPCODE_THROTTLE:
 			throttle = wirelessPackage[0];
+			break;
+		case OPCODE_FLIGHTMODE:
+			changeFlightmode(wirelessPackage[0]);
+			break;
+		case OPCODE_USERINPUT:
+			if (wirelessLength >= 4)
+			{
+				userPitch = wirelessPackage[0];
+				userRoll = wirelessPackage[1];
+				userYaw = wirelessPackage[2];
+				userLift = wirelessPackage[3];
+#if DEBUG
+				SERIAL_DEBUG.print(userPitch);
+				SERIAL_DEBUG.print("\t");
+				SERIAL_DEBUG.print(userRoll);
+				SERIAL_DEBUG.print("\t");
+				SERIAL_DEBUG.print(userYaw);
+				SERIAL_DEBUG.print("\t");
+				SERIAL_DEBUG.println(userLift);
+#endif
+			}
 			break;
 	}
 	// at the end of execution, reset opcode
@@ -131,7 +151,7 @@ static void sendDebug()
 				SERIAL_WIRELESS.write(COMM_MODE_POS);
 				SERIAL_WIRELESS.write((uint8_t*)&gps_xpos,4);
 				SERIAL_WIRELESS.write((uint8_t*)&gps_ypos,4);
-				SERIAL_WIRELESS.write((uint8_t*)&gps_zpos,4);
+				SERIAL_WIRELESS.write((uint8_t*)&altitude,4);
 				break;
 			case 2: // motor values
 				SERIAL_WIRELESS.write(COMM_MODE_MOTOR);
@@ -144,14 +164,14 @@ static void sendDebug()
 			case 4: // flight stats
 				SERIAL_WIRELESS.write(COMM_MODE_STATS);
 				SERIAL_WIRELESS.write(flightMode);
-				SERIAL_WIRELESS.write(flightStats);
+				SERIAL_WIRELESS.write(armed);
 				break;
 		}
 		SERIAL_WIRELESS.write(COMM_END);
 		SERIAL_WIRELESS.write('\r');
 	}
 	debugmode++;
-	if (debugmode >= 4) debugmode = 0;
+	if (debugmode >= 5) debugmode = 0;
 }
 
 
