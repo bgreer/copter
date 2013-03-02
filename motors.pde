@@ -3,21 +3,20 @@
 // given target body forces and torques, set appropriate motor speeds
 // the signs given to torquez may need to be reversed, or just swap the wires on the motors
 // assumes motor0 is front left, goes clockwise, motor 5 is front left
-void set_motorspeed(float lift, float torquex, float torquey, float torquez)
+void set_motorspeed()
 {
-	static float temp[6] = {0.0,0.0,0.0,0.0,0.0,0.0;
+	static float temp[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
 	static uint8_t i;
-	temp[0] = lift - torquex*0.5 + torquey*0.87 + torquez;
-	temp[1] = lift - torquex                    - torquez;
-	temp[2] = lift - torquex*0.5 - torquey*0.87 + torquez;
-	temp[3] = lift + torquex*0.5 - torquey*0.87 - torquez;
-	temp[4] = lift + torquex                    + torquez;
-	temp[5] = lift + torquex*0.5 + torquey*0.87 - torquez;
+	temp[0] = liftz - torquex*0.5 + torquey*0.87 + torquez;
+	temp[1] = liftz - torquex                    - torquez;
+	temp[2] = liftz - torquex*0.5 - torquey*0.87 + torquez;
+	temp[3] = liftz + torquex*0.5 - torquey*0.87 - torquez;
+	temp[4] = liftz + torquex                    + torquez;
+	temp[5] = liftz + torquex*0.5 + torquey*0.87 - torquez;
 	for (i=0;i<6;i++)
 	{
-		if (temp[i] < 0.0) temp[i] = 0.0;
-		if (temp[i] > 179.) temp[i] = 179.;
-		if (!armed) temp[i] = 0.0;
+		if (temp[i] < ESC_ARM_VAL) temp[i] = ESC_ARM_VAL;
+		if (temp[i] > ESC_MAX_VAL) temp[i] = ESC_MAX_VAL;
 		motorval[i] = (uint8_t)temp[i];
 	}
 	write_motors();
@@ -26,6 +25,10 @@ void set_motorspeed(float lift, float torquex, float torquey, float torquez)
 // commit the motor values to the ESCs
 static void write_motors()
 {
+	if (!armed)
+	{
+		motorval[0] = motorval[1] = motorval[2] = motorval[3] = motorval[4] = motorval[5] = 0;
+	}
 	motor[0].write(motorval[0]);
 	motor[1].write(motorval[1]);
 	motor[2].write(motorval[2]);
@@ -82,7 +85,6 @@ static void disarm_motors()
 // mostly for debugging purposes
 static void setall_motors(uint8_t val)
 {
-	if (!armed) val = 0;
 	motorval[0] = val;
 	motorval[1] = val;
 	motorval[2] = val;

@@ -7,12 +7,11 @@
 //#include <avr/pgmspace.h>
 #include <math.h>
 
-#define ESC_ARM_VAL 16
-#define ESC_MAX_VAL 179
 #define PIN_ARM_BUTTON 22
 
-#define DEBUG 0
-#define ALLOW_PHYSICAL_ARMING 0
+#define DEBUG 1
+#define TIMING 1
+#define ALLOW_PHYSICAL_ARMING 1
 
 // some math stuff
 #define ToRad(x) (x*0.01745329252)
@@ -31,7 +30,7 @@
 #define LANDED 1
 #define STABILIZE 2
 #define ALT_HOLD 3
-#define RTL 4
+#define POS_HOLD 4
 
 // serial ports
 #define SERIAL_DEBUG Serial
@@ -68,6 +67,8 @@
 #define OPCODE_KILL 0x03 // kill motors
 #define OPCODE_CALIB 0x04 // run ESC calibration
 #define OPCODE_THROTTLE 0x05 // set throttle
+#define OPCODE_FLIGHTMODE 0x06 // set flight mode
+#define OPCODE_USERINPUT 0x07 // set user targetted pitch, roll, yaw, lift
 
 // for sending data back to the base station
 #define COMM_START 0x53
@@ -81,7 +82,7 @@
 #define COMM_MODE_STATS 0x07
 
 // Motor Control
-#define ESC_ARM_VAL 20
+#define ESC_ARM_VAL 16
 #define ESC_MAX_VAL 179
 
 // // // Variables
@@ -90,6 +91,7 @@
 float pitch, roll, yaw;
 uint8_t gps_quality;
 float gps_xpos, gps_ypos, gps_zpos;
+float altitude;
 float gps_xvel, gps_yvel;
 uint8_t batterylevel[6] = {100,100,100,100,100,100};
 
@@ -98,8 +100,19 @@ Servo motor[6];
 uint8_t motorval[6] = {0,0,0,0,0,0};
 uint8_t ESC_PIN[6] = {7,8,9,10,11,13};
 uint8_t GND_PIN[6] = {26,27,28,29,30,31};
+uint8_t BATT_PIN[6] = {A0, A1, A2, A3, A4, A5};
 uint8_t armed = 0;
 uint8_t throttle = 0;
+
+// for PID controller
+float targetPitch, targetRoll, targetYaw, targetLift, safemodeLift;
+float kp_roll, ki_roll, kd_roll, kdd_roll;
+float kp_pitch, ki_pitch, kd_pitch, kdd_pitch;
+float kp_yaw, ki_yaw, kd_yaw, kdd_yaw;
+int8_t userPitch, userRoll, userYaw;
+int8_t userLift;
+float liftz, torquez, torquex, torquey;
+float xpos_hold, ypos_hold, zpos_hold, yaw_hold;
 
 // flight status
 // 0 - armed

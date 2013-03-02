@@ -5,13 +5,63 @@
 
 */
 
+/* description of flight modes!
 
+	SAFEMODE  - stabilized, slowly de-throttle (for possible in-flight failures)
+	LANDED    - zero throttle, determined by proximity to land
+	STABILIZE - orientation stabilization, no position constraints
+	ALT_HOLD  - adjust throttle to maintain constant altitude
+	POS_HOLD  - constant altitude and GPS position (for photography?)
+
+*/
+
+
+void changeFlightmode(uint8_t newmode)
+{
+	switch (newmode)
+	{
+		case SAFEMODE:
+			yaw_hold = yaw;
+			safemodeLift = targetLift;
+			break;
+		case LANDED:
+			break;
+		case STABILIZE:
+			yaw_hold = yaw;
+			break;
+		case ALT_HOLD:
+			// store current alt
+			yaw_hold = yaw;
+			zpos_hold = altitude;
+			break;
+		case POS_HOLD:
+			// store current 3d position
+			yaw_hold = yaw;
+			xpos_hold = gps_xpos;
+			ypos_hold = gps_ypos;
+			zpos_hold = altitude;
+			break;
+		default: // somethings wrong
+			changeFlightmode(SAFEMODE);
+			return;
+	}
+	flightMode = newmode;
+}
+
+// loop through each batter and get a reading
+// raw data needs to be converted to a voltage
+// then maybe converted to a capacity estimate
+void checkBattery(int index)
+{
+	// volts = read * 5 * 2.424 / 1024
+	batterylevel[index] = 0.118*analogRead(BATT_PIN[index]);
+}
 
 // check serial port for imu data
 void checkIMU()
 {
 	uint8_t count = 0;
-	char buffer[4], readin;
+	char buffer[4];
 
 	// allow for multiple things, but dont get stuck here
 	while (SERIAL_IMU.available() && count<64)
