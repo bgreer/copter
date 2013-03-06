@@ -2,6 +2,7 @@
 #include "SDL.h"
 #include <stdio.h>
 #include <math.h>
+#include "header.h"
 
 int main (int argc, char* argv[])
 {
@@ -9,6 +10,7 @@ int main (int argc, char* argv[])
 	SDL_Event event;
 	SDL_Joystick *joy;
 	int quit;
+	Uint32 time, timer0;
 
 	/* init video */
 	if (SDL_Init(SDL_INIT_AUDIO|SDL_INIT_VIDEO|SDL_INIT_JOYSTICK) < 0)
@@ -21,7 +23,7 @@ int main (int argc, char* argv[])
 	atexit(SDL_Quit);
 
 	/* video settings */
-	screen = SDL_SetVideoMode(400, 400, 16, SDL_SWSURFACE);
+	screen = SDL_SetVideoMode(100, 100, 16, SDL_SWSURFACE);
 	if (screen == NULL)
 	{
 		printf("Unable to set video: %s\n", SDL_GetError());
@@ -48,10 +50,47 @@ int main (int argc, char* argv[])
 		}
 	}
 
+	/* open serial port */
+	openComm();
+
+	/* initialize things */
+	thrustmode = 0;
+	statstimer = -1;
+	flightmode = 0;
+	newflightmode = 0;
+	lastsend = 0;
+	needtosend = 0;
+	reallyneedtosend = 0;
+	sendPitch = sendRoll = sendYaw = 0;
+	targetYaw = 0.0;
+	yawtimer = 0;
+	thrustzp = 0.0;
+
 	/* loop until quit */
 	quit = 0;
 	while (!quit)
 	{
+		checkWireless();
+
+		if ((needtosend && SDL_GetTicks() - lastsend > 250) || reallyneedtosend)
+		{
+			sendControls();
+			lastsend = SDL_GetTicks();
+			needtosend = reallyneedtosend = 0;
+		}
+
+		/* heartbeat timer */
+		if (SDL_GetTicks() - timer0 > 1000)
+		{
+			sendHeartbeat();
+			timer0 = SDL_GetTicks();
+		}
+
+		/* increment yaw */
+		if (SDL_GetTicks() - yawtimer > 100 && deltaYaw != 0.0)
+		{
+			incrementYaw();
+		}
 		
 		/* check SDL events */
 		while (SDL_PollEvent(&event))
@@ -78,6 +117,9 @@ int main (int argc, char* argv[])
 			}
 		}
 	}
+
+	/* close comm */
+	closeComm();
 
 	/* close joystick connection */
 	if (SDL_JoystickOpened(0))
