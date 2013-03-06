@@ -12,16 +12,20 @@ Uint8 *inbuffer;
 void parseCommand ()
 {
 	/* just conform the command format */
-	if (inbuffer[0] != 'S' || inbuffer[bufferlength] != 'E')
+	if (inbuffer[0] != 'S')
 	{
-		printf("ERROR: problem with command: %s", inbuffer);
+		printf("ERROR: problem with command: %s\n", inbuffer);
 		return;
 	}
 
 	switch (inbuffer[1])
 	{
 		case 'H': /* heartbeat */
-			printf("heartbeat received\n");
+			printf("<HB> ");
+			fflush(stdout);
+			break;
+		default:
+			printf("Unmatched: %s\n", inbuffer);
 			break;
 	}
 }
@@ -72,24 +76,25 @@ void requestStats ()
 
 void checkWireless ()
 {
-	int stat;
-	Uint8 inbyte;
+	int stat, num, ii;
+	Uint8 inbyte[32];
 
 	/* allow timeout on a command */
-	if (bufferindex > 0 && SDL_GetTicks() - commtimer > 2000)
+	if (bufferindex > 0 && SDL_GetTicks() - commtimer > 500)
 	{
 		printf("WARNING: comm timeout\n");
 		bufferindex = 0;
 	}
 
 	/* read a single byte */
-	while (stat=read(fd, &inbyte, 1) > 0)
+	num = read(fd, &inbyte, 32);
+	for (ii=0; ii<num; ii++)
 	{
-		if ((bufferindex == 0 && inbyte == 'S') || bufferindex > 0)
+		if ((bufferindex == 0 && inbyte[ii] == 'S') || bufferindex > 0)
 		{
-			inbuffer[bufferindex] = inbyte;
+			inbuffer[bufferindex] = inbyte[ii];
 			commtimer = SDL_GetTicks();
-			if (inbyte == 'E')
+			if (inbyte[ii] == 'E')
 			{
 				parseCommand();
 				bufferindex = 0;
@@ -107,7 +112,7 @@ void checkWireless ()
 
 void openComm ()
 {
-	fd = open("/dev/ttyACM0", O_RDWR | O_NOCTTY | O_NDELAY);
+	fd = open("/dev/ttyACM0", O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
 	if (fd == -1)
 	{
 		printf("ERROR: Unable to open comm port!\n");
@@ -122,10 +127,10 @@ void openComm ()
 	options.c_cflag &= ~CSTOPB;
 	options.c_cflag &= ~CSIZE;
 	options.c_cflag |= CS8;
-	options.c_cflag &= ~( ICANON | ECHO | ECHOE |ISIG );
+/*	options.c_cflag &= ~( ICANON | ECHO | ECHOE |ISIG );
 	options.c_iflag &= ~(IXON | IXOFF | IXANY );
 	options.c_oflag &= ~OPOST;
-
+*/
 	tcsetattr(fd, TCSANOW, &options);
 
 	fcntl(fd, F_SETFL, FNDELAY);

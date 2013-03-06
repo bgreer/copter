@@ -76,6 +76,7 @@ int main (int argc, char* argv[])
 		{
 			sendControls();
 			lastsend = SDL_GetTicks();
+			timer0 = lastsend;
 			needtosend = reallyneedtosend = 0;
 		}
 
