@@ -5,7 +5,7 @@
 // for main loop timing
 uint32_t timer_200Hz, timer_50Hz, timer_10Hz, timer_2Hz;
 uint32_t time;
-uint8_t counter_10Hz, divider_1Hz;
+uint8_t counter_10Hz, divider_1Hz, alt_armed;
 unsigned long armtime;
 uint8_t battindex;
 
@@ -28,11 +28,11 @@ void setup()
 
 void loop()
 {
-
 	// 200Hz loop
 	// update IMU info
 	// calculate stability
 	// set motor speed (if armed)
+	
 	time = micros();
 	if (time-timer_200Hz > 5000)
 	{
@@ -47,12 +47,16 @@ void loop()
 		// use PID controller suggestions to set motor speed
 		set_motorspeed();
 
+		// need to call this very frequently?
+		update_altitude();
+
 		timer_200Hz = time;
 	}
 
 	// 10Hz loop
 	// check wireless data
 	// update flight mode (consider heartbeat)
+	
 	time = micros();
 	if (time-timer_10Hz > 100000)
 	{
@@ -81,10 +85,12 @@ void loop()
 	// 2Hz loop
 	// check wireless heartbeat timeout
 	// get GPS info
+
 	time = micros();
 	if (time-timer_2Hz > 500000)
 	{
 		// check wireless heartbeat
+		
 		if (heartbeat && time-lastHeartbeat > HEARTBEAT_TIMEOUT)
 		{
 			// no heartbeat detected from base station
@@ -99,12 +105,10 @@ void loop()
 		if (flightMode == SAFEMODE)
 			safemodeLift = safemodeLift*0.99;
 
-		sendDebug();
+//		sendDebug();
 		// run this at 1Hz
-		if (divider_1Hz)
-			sendHeartbeat();
-		else
-			update_altitude();
+//		if (divider_1Hz)
+//			sendHeartbeat();
 
 		// check physical arming
 #if ALLOW_PHYSICAL_ARMING
@@ -138,6 +142,7 @@ void loop()
 		divider_1Hz = !divider_1Hz;
 		timer_2Hz = time;
 	}
+	
 }
 
 
@@ -155,6 +160,9 @@ static void quick_start()
 	armtime = 0;
 	counter_10Hz = 0;
 	divider_1Hz = 0;
+	alt_armed = 0;
+	commtimer = 0;
+
 	// set pinmodes for esc lines TODO: redesign so this isnt needed
 	pinMode(GND_PIN[0], OUTPUT);
 	digitalWrite(GND_PIN[0], LOW);
@@ -189,7 +197,6 @@ static void quick_start()
 	SERIAL_WIRELESS.write(COMM_MODE_HELLO);
 	SERIAL_WIRELESS.write(COMM_END);
 
-	// initialize the barometric pressure sensor
 	alt_init();
 
 	// should be ready to enter main loop now

@@ -38,6 +38,7 @@ void PID_update()
 	targetLift = ((int)userLift);
 	
 	// compute error
+/*
 	errorPitch = targetPitch - pitch;
 	errorRoll = targetRoll - roll;
 	errorYaw = targetYaw - yaw;
@@ -50,7 +51,7 @@ void PID_update()
 	derRoll = errorRoll - lastRoll;
 	intYaw += errorYaw*0.001;
 	derYaw = errorYaw - lastYaw; // TODO fix problems mod 360deg
-	
+	*/
 	// 
 }
 
@@ -78,11 +79,11 @@ void PID_calcForces()
 		case STABILIZE:
 			break;
 	}
-
+/*
 	torquex = kp_roll*errorRoll + ki_roll*intRoll + kd_roll*derRoll;
 	torquey = kp_pitch*errorPitch + ki_pitch*intPitch + kd_pitch*derPitch;
 	torquez = kp_yaw*errorYaw + ki_yaw*intYaw + kd_yaw*derYaw;
 	liftz = targetLift + (2.0 - cos(ToRad(targetPitch)) - cos(ToRad(targetRoll)))*targetLift;
-
+*/
 }
 

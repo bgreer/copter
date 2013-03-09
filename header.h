@@ -10,8 +10,8 @@
 #define PIN_ARM_BUTTON 22
 
 #define DEBUG 1
-#define TIMING 1
-#define ALLOW_PHYSICAL_ARMING 1
+#define TIMING 0
+#define ALLOW_PHYSICAL_ARMING 0
 
 // some math stuff
 #define ToRad(x) (x*0.01745329252)
@@ -34,17 +34,17 @@
 
 // serial ports
 #define SERIAL_DEBUG Serial
-#define SERIAL_WIRELESS Serial3
+#define SERIAL_WIRELESS Serial3 // 3
 #define SERIAL_IMU Serial2
 
 #define WIRELESS_BAUD 38400
-#define WIRELESS_BYTELIMIT 8
+#define WIRELESS_BYTELIMIT 32
 #define IMU_BAUD 115200
 #define DEBUG_BAUD 38400
 
 // heartbeat timeout in microseconds
 // set to 2x the heartbeat time or something
-#define HEARTBEAT_TIMEOUT (2000000) // 2 secs
+#define HEARTBEAT_TIMEOUT (4000000) // 4 secs
 
 // Arduino stuff
 #include "Arduino.h"
@@ -69,6 +69,7 @@
 #define OPCODE_THROTTLE 0x05 // set throttle
 #define OPCODE_FLIGHTMODE 0x06 // set flight mode
 #define OPCODE_USERINPUT 0x07 // set user targetted pitch, roll, yaw, lift
+#define OPCODE_SENDSTATS 0x08 // send current stats to basestation
 
 // for sending data back to the base station
 #define COMM_START 0x53
@@ -128,6 +129,7 @@ uint8_t debugmode = 0;
 // wireless heartbeat
 uint8_t heartbeat = 0;
 uint32_t lastHeartbeat = 0;
+uint32_t commtimer;
 
 // debug info
 // 0 - IMU info

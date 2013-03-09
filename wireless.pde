@@ -5,9 +5,51 @@
 	(correct addresses, baud rates, etc)
 */
 
+static void checkWireless()
+{
+	uint8_t inByte;
+
+	// check timeout
+	if (micros()-commtimer > 500 && wirelessLength > 0)
+	{
+#if DEBUG
+		SERIAL_DEBUG.println("WARNING: comm timeout");
+#endif
+		wirelessLength = 0;
+		wirelessOpcode = OPCODE_NOP;
+	}
+
+	while (SERIAL_WIRELESS.available())
+	{
+		inByte = SERIAL_WIRELESS.read();
+		if ((wirelessLength == 0 && inByte == WIRELESS_START) || wirelessLength > 0)
+		{
+			wirelessPackage[wirelessLength] = inByte;
+			commtimer = micros();
+			if (inByte == WIRELESS_END)
+			{
+				if (wirelessLength > 1)
+					wirelessOpcode = wirelessPackage[1];
+				heartbeat = 1;
+				lastHeartbeat = micros();
+			} else {
+				wirelessLength++;
+				// check past bounds
+				if (wirelessLength == WIRELESS_BYTELIMIT)
+				{
+#if DEBUG
+					SERIAL_DEBUG.println("WARNING: comm buffer full");
+#endif
+					wirelessLength = 0;
+				}
+			}
+		}
+	}
+}
+
 // check wireless data availability
 // attempt to parse incoming data as opcode + data package
-static void checkWireless()
+static void checkWireless2()
 {
 	uint8_t ii = 0, done = 0;
 	uint8_t inByte;
@@ -29,6 +71,7 @@ static void checkWireless()
 					wirelessOpcode = SERIAL_WIRELESS.read();
 				} else { // else, read message
 					inByte = SERIAL_WIRELESS.read();
+					SERIAL_DEBUG.println(inByte);
 					// check for end
 					if (inByte == WIRELESS_END)
 					{
@@ -55,6 +98,7 @@ static void checkWireless()
 			if (!done)
 			{
 				// clear out the operation
+				SERIAL_DEBUG.println(wirelessOpcode);
 				wirelessOpcode = OPCODE_NOP;
 				wirelessLength = 0;
 #if DEBUG
@@ -82,7 +126,7 @@ static void parseCommand()
 			heartbeat = 1;
 			lastHeartbeat = micros();
 #if DEBUG
-			SERIAL_DEBUG.println("HEARTBEAT");
+//			SERIAL_DEBUG.println("HEARTBEAT");
 #endif
 			break;
 		case OPCODE_ARM:
@@ -95,32 +139,33 @@ static void parseCommand()
 			calibrate_motors();
 			break;
 		case OPCODE_THROTTLE:
-			throttle = wirelessPackage[0];
+			throttle = wirelessPackage[2];
 			break;
 		case OPCODE_FLIGHTMODE:
-			changeFlightmode(wirelessPackage[0]);
+			changeFlightmode(wirelessPackage[2]);
 			break;
 		case OPCODE_USERINPUT:
-			if (wirelessLength >= 4)
+			if (wirelessLength >= 6)
 			{
-				userPitch = wirelessPackage[0];
-				userRoll = wirelessPackage[1];
-				userYaw = wirelessPackage[2];
-				userLift = wirelessPackage[3];
+				userPitch = wirelessPackage[2];
+				userRoll = wirelessPackage[3];
+				userYaw = wirelessPackage[4];
+				userLift = wirelessPackage[5];
 #if DEBUG
-				SERIAL_DEBUG.print(userPitch);
+				SERIAL_DEBUG.print((uint8_t)userPitch);
 				SERIAL_DEBUG.print("\t");
-				SERIAL_DEBUG.print(userRoll);
+				SERIAL_DEBUG.print((uint8_t)userRoll);
 				SERIAL_DEBUG.print("\t");
-				SERIAL_DEBUG.print(userYaw);
+				SERIAL_DEBUG.print((uint8_t)userYaw);
 				SERIAL_DEBUG.print("\t");
-				SERIAL_DEBUG.println(userLift);
+				SERIAL_DEBUG.println((uint8_t)userLift);
 #endif
 			}
 			break;
 	}
 	// at the end of execution, reset opcode
 	wirelessOpcode = OPCODE_NOP;
+	wirelessLength = 0;
 }
 
 static void sendHeartbeat()
