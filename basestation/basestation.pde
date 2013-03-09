@@ -1,6 +1,14 @@
- import processing.serial.*;
+import java.io.*;
+import net.java.games.input.*;
+
+// /dev/input/js0
+// /dev/input/event20
+// sudo xboxdrv --deadzone 6000 --deadzone-trigger 100
+
+import processing.serial.*;
 
 Serial port;
+InputStream js;
 String[] outtext, intext;
 int outindex, inindex;
 int[] outbyte, inbyte;
@@ -18,7 +26,7 @@ BloomPProcess bloom;
 
 void setup()
 {
-  frameRate(10);
+  frameRate(30);
   numlines = 23;
   numpos = 100;
   armed = 0;
@@ -74,6 +82,7 @@ void setup()
   textFont(createFont("Courier New", 18));
   
   port = new Serial(this, "/dev/ttyUSB0", 38400);
+  js = new FileInputStream("/dev/input/js0");
   
   sendheartbeat();
   lasthb = millis();
@@ -88,6 +97,7 @@ void draw()
   // grab data coming through the wireless
   checkWireless();
   if (wirelessLength>0) parseCommand();
+  checkJoystick();
   //while (port.available()>0)
   //{
   //  inindex = (inindex+1)%numlines;
@@ -109,7 +119,7 @@ void draw()
   //addpos(xpos[posindex]+random(1.5)-0.5,ypos[posindex]+random(1)-0.5,random(1)+1);
   //yaw = yaw + 1;
   
-  bloom.ApplyBloom();
+  //bloom.ApplyBloom();
 }
 
 void addpos(float x, float y, float z)
@@ -152,9 +162,10 @@ void systemcheck()
 
 void sendheartbeat()
 {
+  /*
   senddata('S');
   senddata('H');
-  senddata('E');
+  senddata('E')*/
 }
 
 void heartbeatrecv()
