@@ -55,7 +55,7 @@ void incrementYaw ()
 {
 	Uint8 mapped;
 
-	targetYaw += deltaYaw*0.001;
+	targetYaw += deltaYaw*0.0003;
 	if (targetYaw >= 360.0) targetYaw -= 360.;
 	if (targetYaw < 0.0) targetYaw += 360.;
 
@@ -72,9 +72,9 @@ void mapLift (Sint16 input)
 
 	thrust = -input/256.;
 	if (input < 0)
-		thrust = thrust*thrust/100.;
+		thrust = thrust*thrust/300.;
 	else
-		thrust = -thrust*thrust/100.;
+		thrust = -thrust*thrust/300.;
 
 	temp = thrust + thrustzp;
 	if (temp < 0.0) temp = 0.0;

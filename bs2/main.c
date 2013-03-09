@@ -61,7 +61,7 @@ int main (int argc, char* argv[])
 	lastsend = 0;
 	needtosend = 0;
 	reallyneedtosend = 0;
-	sendPitch = sendRoll = sendYaw = 0;
+	sendPitch = sendRoll = sendYaw = 128;
 	targetYaw = 0.0;
 	yawtimer = 0;
 	thrustzp = 0.0;
@@ -72,7 +72,7 @@ int main (int argc, char* argv[])
 	{
 		checkWireless();
 
-		if ((needtosend && SDL_GetTicks() - lastsend > 250) || reallyneedtosend)
+		if ((needtosend && SDL_GetTicks() - lastsend > 200) || reallyneedtosend)
 		{
 			sendControls();
 			lastsend = SDL_GetTicks();

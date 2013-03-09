@@ -8,6 +8,7 @@ int fd;
 struct termios options;
 int bufferlength, bufferindex;
 Uint8 *inbuffer;
+int8_t outbuffer[8];
 
 void parseCommand ()
 {
@@ -32,15 +33,16 @@ void parseCommand ()
 
 void sendControls()
 {
+	outbuffer[0] = 'S';
+	outbuffer[1] = 0x07;
+	outbuffer[2] = sendPitch;
+	outbuffer[3] = sendRoll;
+	outbuffer[4] = sendYaw;
+	outbuffer[5] = sendLift;
+	outbuffer[6] = 'E';
 	printf("(send) ");
 	fflush(stdout);
-	write(fd, "S", 1);
-	write(fd, 0x07, 1);
-	write(fd, sendPitch, 1);
-	write(fd, sendRoll, 1);
-	write(fd, sendYaw, 1);
-	write(fd, sendLift, 1);
-	write(fd, "E", 1);
+	write(fd, outbuffer, 7);
 }
 
 void sendHeartbeat ()
@@ -51,25 +53,28 @@ void sendHeartbeat ()
 void armMotors ()
 {
 	printf("Arming motors.\n");
-	write(fd, "S", 1);
-	write(fd, 0x02, 1);
-	write(fd, "E", 1);
+	outbuffer[0] = 'S';
+	outbuffer[1] = 0x02;
+	outbuffer[2] = 'E';
+	write(fd, outbuffer, 3);
 }
 
 void killSwitch ()
 {
 	printf("KILLING MOTORS\n");
-	write(fd, "S", 1);
-	write(fd, 0x03, 1);
-	write(fd, "E", 1);
+	outbuffer[0] = 'S';
+	outbuffer[1] = 0x03;
+	outbuffer[2] = 'E';
+	write(fd, outbuffer, 3);
 }
 
 void requestStats ()
 {
 	printf("Requesting copter stats..\n");
-	write(fd, "S", 1);
-	write(fd, 0x08, 1);
-	write(fd, "E", 1);
+	outbuffer[0] = 'S';
+	outbuffer[1] = 0x08;
+	outbuffer[2] = 'E';
+	write(fd, outbuffer, 3);
 	statstimer = SDL_GetTicks();
 }
 
@@ -112,7 +117,7 @@ void checkWireless ()
 
 void openComm ()
 {
-	fd = open("/dev/ttyACM0", O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
+	fd = open("/dev/ttyUSB1", O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
 	if (fd == -1)
 	{
 		printf("ERROR: Unable to open comm port!\n");
