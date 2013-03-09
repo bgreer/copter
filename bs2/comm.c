@@ -117,7 +117,7 @@ void checkWireless ()
 
 void openComm ()
 {
-	fd = open("/dev/ttyUSB1", O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
+	fd = open(joyname, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
 	if (fd == -1)
 	{
 		printf("ERROR: Unable to open comm port!\n");

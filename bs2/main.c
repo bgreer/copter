@@ -12,6 +12,15 @@ int main (int argc, char* argv[])
 	int quit;
 	Uint32 time, timer0;
 
+	/* check command line args */
+	if (argc < 2)
+	{
+		printf("ERROR: incorrect number of command-line args\n");
+		return EXIT_FAILURE;
+	}
+
+	joyname = argv[1];
+
 	/* init video */
 	if (SDL_Init(SDL_INIT_AUDIO|SDL_INIT_VIDEO|SDL_INIT_JOYSTICK) < 0)
 	{
@@ -21,20 +30,6 @@ int main (int argc, char* argv[])
 
 	/* at exit, call SDL quit */
 	atexit(SDL_Quit);
-
-	/* video settings */
-	screen = SDL_SetVideoMode(100, 100, 16, SDL_SWSURFACE);
-	if (screen == NULL)
-	{
-		printf("Unable to set video: %s\n", SDL_GetError());
-		exit(EXIT_FAILURE);
-	}
-
-	/* grab pointer to screen buffer? */
-	if (SDL_MUSTLOCK(screen))
-	{
-		SDL_UnlockSurface(screen);
-	}
 
 	/* get joystick */
 	if (SDL_NumJoysticks()>0)
