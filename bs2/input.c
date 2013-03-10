@@ -55,7 +55,7 @@ void incrementYaw ()
 {
 	Uint8 mapped;
 
-	targetYaw += deltaYaw*0.0003;
+	targetYaw += deltaYaw*0.0001;
 	if (targetYaw >= 360.0) targetYaw -= 360.;
 	if (targetYaw < 0.0) targetYaw += 360.;
 
@@ -156,8 +156,10 @@ void handleJoybuttondown (Uint8 button)
 	switch (button)
 	{
 		case 0:
+			sendFlightmode(0x02);
 			break;
 		case 1:
+			sendFlightmode(0x01);
 			break;
 		case 2:
 			printf("\nPitch=%d\nRoll=%d\nYaw=%d\nLift=%d\n",sendPitch,sendRoll,sendYaw,sendLift);

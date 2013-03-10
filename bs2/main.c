@@ -50,7 +50,7 @@ int main (int argc, char* argv[])
 
 	/* initialize things */
 	thrustmode = 0;
-	statstimer = -1;
+	statstimer = 0;
 	flightmode = 0;
 	newflightmode = 0;
 	lastsend = 0;
