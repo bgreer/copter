@@ -89,7 +89,7 @@
 // // // Variables
 
 // state variables
-float pitch, roll, yaw;
+float pitch, roll, yaw, lift;
 uint8_t gps_quality;
 float gps_xpos, gps_ypos, gps_zpos;
 float altitude;
@@ -99,8 +99,7 @@ uint8_t batterylevel[6] = {100,100,100,100,100,100};
 // motor control
 Servo motor[6];
 uint8_t motorval[6] = {0,0,0,0,0,0};
-uint8_t ESC_PIN[6] = {7,8,9,10,11,13};
-uint8_t GND_PIN[6] = {26,27,28,29,30,31};
+uint8_t ESC_PIN[6] = {8,9,10,11,12,13};
 uint8_t BATT_PIN[6] = {A0, A1, A2, A3, A4, A5};
 uint8_t armed = 0;
 uint8_t throttle = 0;

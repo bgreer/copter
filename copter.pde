@@ -43,6 +43,7 @@ void loop()
 		// check the IMU serial comm for data
 		checkIMU();
 		// use PID controller to compare targets to actual values
+		PID_update();
 		PID_calcForces();
 		// use PID controller suggestions to set motor speed
 		set_motorspeed();
@@ -105,10 +106,11 @@ void loop()
 		if (flightMode == SAFEMODE)
 			safemodeLift = safemodeLift*0.99;
 
-//		sendDebug();
+		if (debugmode > 0)
+			sendDebug();
 		// run this at 1Hz
-//		if (divider_1Hz)
-//			sendHeartbeat();
+		if (divider_1Hz)
+			sendHeartbeat();
 
 		// check physical arming
 #if ALLOW_PHYSICAL_ARMING
@@ -163,19 +165,6 @@ static void quick_start()
 	alt_armed = 0;
 	commtimer = 0;
 
-	// set pinmodes for esc lines TODO: redesign so this isnt needed
-	pinMode(GND_PIN[0], OUTPUT);
-	digitalWrite(GND_PIN[0], LOW);
-	pinMode(GND_PIN[1], OUTPUT);
-	digitalWrite(GND_PIN[1], LOW);
-	pinMode(GND_PIN[2], OUTPUT);
-	digitalWrite(GND_PIN[2], LOW);
-	pinMode(GND_PIN[3], OUTPUT);
-	digitalWrite(GND_PIN[3], LOW);
-	pinMode(GND_PIN[4], OUTPUT);
-	digitalWrite(GND_PIN[4], LOW);
-	pinMode(GND_PIN[5], OUTPUT);
-	digitalWrite(GND_PIN[5], LOW);
 	init_motors();
 	// initialize PID controller
 	PID_init();
@@ -206,8 +195,4 @@ static void quick_start()
 	SERIAL_DEBUG.println(" us");
 #endif
 	battindex = 0;
-	userPitch = 0;
-	userRoll = 0;
-	userYaw = 0;
-	userLift = 0;
 }

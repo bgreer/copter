@@ -2,7 +2,7 @@
 
 // given target body forces and torques, set appropriate motor speeds
 // the signs given to torquez may need to be reversed, or just swap the wires on the motors
-// assumes motor0 is front left, goes clockwise, motor 5 is front left
+// assumes motor0 is front right, goes clockwise, motor 5 is front left
 void set_motorspeed()
 {
 	static float temp[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
@@ -73,7 +73,7 @@ static void arm_motors()
 static void disarm_motors()
 {
 	throttle = 0;
-	setall_motors(throttle);
+	setall_motors(0);
 	armed = 0;
 	digitalWrite(LED_ARMED, LOW);
 #if DEBUG

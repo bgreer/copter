@@ -49,7 +49,7 @@ static void checkWireless()
 
 // check wireless data availability
 // attempt to parse incoming data as opcode + data package
-static void checkWireless2()
+static void checkWireless_old()
 {
 	uint8_t ii = 0, done = 0;
 	uint8_t inByte;
@@ -145,12 +145,15 @@ static void parseCommand()
 			changeFlightmode(wirelessPackage[2]);
 			break;
 		case OPCODE_USERINPUT:
-			if (wirelessLength >= 6)
+			if (wirelessLength >= 7)
 			{
-				userPitch = wirelessPackage[2];
-				userRoll = wirelessPackage[3];
-				userYaw = wirelessPackage[4];
-				userLift = wirelessPackage[5];
+				if (verify(wirelessPackage[6]))
+				{
+					userPitch = wirelessPackage[2];
+					userRoll = wirelessPackage[3];
+					userYaw = wirelessPackage[4];
+					userLift = wirelessPackage[5];
+				}
 #if DEBUG
 				SERIAL_DEBUG.print((uint8_t)userPitch);
 				SERIAL_DEBUG.print("\t");
@@ -158,14 +161,30 @@ static void parseCommand()
 				SERIAL_DEBUG.print("\t");
 				SERIAL_DEBUG.print((uint8_t)userYaw);
 				SERIAL_DEBUG.print("\t");
-				SERIAL_DEBUG.println((uint8_t)userLift);
+				SERIAL_DEBUG.print((uint8_t)userLift);
+				SERIAL_DEBUG.print("\t");
+				SERIAL_DEBUG.println((uint8_t)wirelessPackage[6]);
 #endif
 			}
+			break;
+		case OPCODE_SENDSTATS:
+			debugmode = 1;
 			break;
 	}
 	// at the end of execution, reset opcode
 	wirelessOpcode = OPCODE_NOP;
 	wirelessLength = 0;
+}
+
+/* verify checksum for userinput command */
+uint8_t verify (uint8_t chk)
+{
+	uint8_t chk2, ii;
+	chk2 = wirelessPackage[0];
+	for (ii=1; ii<6; ii++)
+		chk2 ^= wirelessPackage[ii];
+	
+	return (chk == chk2);
 }
 
 static void sendHeartbeat()
@@ -182,31 +201,35 @@ static void sendDebug()
 	// only enter loop if the debug flag bit is set
 	if ((debugFlag>>debugmode)&0x01)
 	{
+#ifdef DEBUG
+		SERIAL_DEBUG.println("sending stats");
+		SERIAL_DEBUG.println(debugmode);
+#endif
 		SERIAL_WIRELESS.write(COMM_START);
 		// now figure out what to send
 		switch (debugmode)
 		{
-			case 0: // IMU
+			case 1: // IMU
 				SERIAL_WIRELESS.write(COMM_MODE_IMU);
 				SERIAL_WIRELESS.write((uint8_t*)&pitch,4);
 				SERIAL_WIRELESS.write((uint8_t*)&roll,4);
 				SERIAL_WIRELESS.write((uint8_t*)&yaw,4);
 				break;
-			case 1: // position
+			case 2: // position
 				SERIAL_WIRELESS.write(COMM_MODE_POS);
 				SERIAL_WIRELESS.write((uint8_t*)&gps_xpos,4);
 				SERIAL_WIRELESS.write((uint8_t*)&gps_ypos,4);
 				SERIAL_WIRELESS.write((uint8_t*)&altitude,4);
 				break;
-			case 2: // motor values
+			case 3: // motor values
 				SERIAL_WIRELESS.write(COMM_MODE_MOTOR);
 				SERIAL_WIRELESS.write(motorval,6);
 				break;
-			case 3: // battery levels
+			case 4: // battery levels
 				SERIAL_WIRELESS.write(COMM_MODE_BATT);
 				SERIAL_WIRELESS.write(batterylevel,6);
 				break;
-			case 4: // flight stats
+			case 5: // flight stats
 				SERIAL_WIRELESS.write(COMM_MODE_STATS);
 				SERIAL_WIRELESS.write(flightMode);
 				SERIAL_WIRELESS.write(armed);
@@ -216,7 +239,7 @@ static void sendDebug()
 		SERIAL_WIRELESS.write('\r');
 	}
 	debugmode++;
-	if (debugmode >= 5) debugmode = 0;
+	if (debugmode >= 6) debugmode = 0;
 }
 
 
