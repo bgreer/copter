@@ -70,11 +70,12 @@ void mapLift (Sint16 input)
 	Uint8 mapped;
 	float temp;
 
-	thrust = -input/256.;
-	if (input < 0)
-		thrust = thrust*thrust/300.;
+	thrust = -input/1024.;
+/*	if (input < 0)
+		thrust = thrust*thrust/500.;
 	else
-		thrust = -thrust*thrust/300.;
+		thrust = -thrust*thrust/500.;
+		*/
 
 	temp = thrust + thrustzp;
 	if (temp < 0.0) temp = 0.0;

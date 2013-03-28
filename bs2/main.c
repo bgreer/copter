@@ -67,7 +67,7 @@ int main (int argc, char* argv[])
 	{
 		checkWireless();
 
-		if ((needtosend && SDL_GetTicks() - lastsend > 200) || reallyneedtosend)
+		if ((needtosend && SDL_GetTicks() - lastsend > 150) || reallyneedtosend)
 		{
 			sendControls();
 			lastsend = SDL_GetTicks();
@@ -78,8 +78,10 @@ int main (int argc, char* argv[])
 		/* heartbeat timer */
 		if (SDL_GetTicks() - timer0 > 1000)
 		{
-			sendHeartbeat();
-			timer0 = SDL_GetTicks();
+			//sendHeartbeat();
+			sendControls();
+			lastsend = SDL_GetTicks();
+			timer0 = lastsend;
 		}
 
 		/* increment yaw */
