@@ -70,6 +70,11 @@ void loop()
 		if (counter_10Hz) checkWireless();
 		else if (wirelessOpcode) parseCommand();
 
+		// check to see if i've flipped over
+		// if i have, kill motors and let me die gracefully
+		if (abs(roll) + abs(pitch) > KILL_ANGLE)
+			disarm_motors();
+
 #if DEBUG
 //		for (int i=0; i<6; i++)
 //		{

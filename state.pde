@@ -48,6 +48,7 @@ void changeFlightmode(uint8_t newmode)
 	flightMode = newmode;
 }
 
+
 // loop through each batter and get a reading
 // raw data needs to be converted to a voltage
 // then maybe converted to a capacity estimate

@@ -57,7 +57,7 @@ void PID_update()
 	intYaw += errorYaw*0.001;
 	derYaw = errorYaw - lastYaw; // TODO fix problems mod 360deg
 #ifdef DEBUG
-	
+	/*
 	SERIAL_DEBUG.print(errorPitch);
 	SERIAL_DEBUG.print("\t");
 	SERIAL_DEBUG.print(errorRoll);
@@ -65,7 +65,7 @@ void PID_update()
 	SERIAL_DEBUG.print(targetYaw);
 	SERIAL_DEBUG.print("\t");
 	SERIAL_DEBUG.println(targetLift);
-	
+	*/
 #endif
 	// 
 }

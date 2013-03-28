@@ -19,6 +19,19 @@ void set_motorspeed()
 		if (temp[i] > ESC_MAX_VAL) temp[i] = ESC_MAX_VAL;
 		motorval[i] = (uint8_t)temp[i];
 	}
+#ifdef DEBUG
+	SERIAL_DEBUG.print(motorval[0]);
+	SERIAL_DEBUG.print("\t");
+	SERIAL_DEBUG.print(motorval[1]);
+	SERIAL_DEBUG.print("\t");
+	SERIAL_DEBUG.print(motorval[2]);
+	SERIAL_DEBUG.print("\t");
+	SERIAL_DEBUG.print(motorval[3]);
+	SERIAL_DEBUG.print("\t");
+	SERIAL_DEBUG.print(motorval[4]);
+	SERIAL_DEBUG.print("\t");
+	SERIAL_DEBUG.println(motorval[5]);
+#endif
 	write_motors();
 }
 
@@ -73,7 +86,8 @@ static void arm_motors()
 static void disarm_motors()
 {
 	throttle = 0;
-	setall_motors(0);
+	setall_motors(ESC_ARM_VAL);
+	liftz = 0;
 	armed = 0;
 	digitalWrite(LED_ARMED, LOW);
 #if DEBUG
