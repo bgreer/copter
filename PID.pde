@@ -18,14 +18,14 @@ void PID_init()
 	userYaw = userLift = 0;
 
 	// set gains
-	kp_roll = 0.02; // 0.02
+	kp_roll = 0.5; // 0.5
 	ki_roll = 0.0; // 0.05
-	kd_roll = 0.02; // 0.05
+	kd_roll = 10.0; // 10.0
 	kdd_roll = 0.0;
 
-	kp_pitch = 0.02;
+	kp_pitch = 0.5;
 	ki_pitch = 0.0;
-	kd_pitch = 0.02;
+	kd_pitch = 10.0;
 	kdd_pitch = 0.0;
 
 	kp_yaw = 0.0;
@@ -51,21 +51,24 @@ void PID_update()
 
 	// update PID elements
 	intPitch += errorPitch*0.001;
-	derPitch = errorPitch - lastPitch;
+	derPitch = 0.1*(errorPitch - lastPitch) + 0.9*derPitch;
 	intRoll += errorRoll*0.001;
-	derRoll = errorRoll - lastRoll;
+	derRoll = 0.1*(errorRoll - lastRoll) + 0.9*derRoll;
 	intYaw += errorYaw*0.001;
-	derYaw = errorYaw - lastYaw; // TODO fix problems mod 360deg
+	derYaw = 0.1*(errorYaw - lastYaw) + 0.9*derYaw; // TODO fix problems mod 360deg
+lastPitch = errorPitch;
+lastRoll = errorRoll;
+lastYaw = errorYaw;
 #ifdef DEBUG
-	/*
+/*	
 	SERIAL_DEBUG.print(errorPitch);
 	SERIAL_DEBUG.print("\t");
-	SERIAL_DEBUG.print(errorRoll);
+	SERIAL_DEBUG.print(intPitch);
 	SERIAL_DEBUG.print("\t");
-	SERIAL_DEBUG.print(targetYaw);
+	SERIAL_DEBUG.print(derPitch);
 	SERIAL_DEBUG.print("\t");
-	SERIAL_DEBUG.println(targetLift);
-	*/
+	SERIAL_DEBUG.println(pitch);
+*/	
 #endif
 	// 
 }

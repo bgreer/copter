@@ -20,6 +20,7 @@ void set_motorspeed()
 		motorval[i] = (uint8_t)temp[i];
 	}
 #ifdef DEBUG
+
 	SERIAL_DEBUG.print(motorval[0]);
 	SERIAL_DEBUG.print("\t");
 	SERIAL_DEBUG.print(motorval[1]);
@@ -31,6 +32,7 @@ void set_motorspeed()
 	SERIAL_DEBUG.print(motorval[4]);
 	SERIAL_DEBUG.print("\t");
 	SERIAL_DEBUG.println(motorval[5]);
+
 #endif
 	write_motors();
 }
@@ -87,6 +89,7 @@ static void disarm_motors()
 {
 	throttle = 0;
 	setall_motors(ESC_ARM_VAL);
+targetLift = 0;
 	liftz = 0;
 	armed = 0;
 	digitalWrite(LED_ARMED, LOW);

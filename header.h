@@ -47,7 +47,7 @@
 #define HEARTBEAT_TIMEOUT (4000000) // 4 secs
 
 // if the copter rolls or pitches by more than this, kill motors and die gracefully
-#define KILL_ANGLE 60.0 // in degrees
+#define KILL_ANGLE 70.0 // in degrees
 
 // Arduino stuff
 #include "Arduino.h"
