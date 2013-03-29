@@ -9,7 +9,7 @@
 
 #define PIN_ARM_BUTTON 22
 
-#define DEBUG 1
+#define DEBUG 0
 #define TIMING 0
 #define ALLOW_PHYSICAL_ARMING 0
 
@@ -48,6 +48,8 @@
 
 // if the copter rolls or pitches by more than this, kill motors and die gracefully
 #define KILL_ANGLE 70.0 // in degrees
+
+#define TORQUEMAX 30.0
 
 // Arduino stuff
 #include "Arduino.h"

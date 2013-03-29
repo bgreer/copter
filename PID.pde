@@ -4,6 +4,7 @@ float derRoll, derPitch, derYaw;
 float dderRoll, dderPitch, dderYaw;
 float lastRoll, lastPitch, lastYaw;
 float errorPitch, errorRoll, errorYaw, errorLift;
+float introll1, intpitch1;
 
 void PID_init()
 {
@@ -18,14 +19,14 @@ void PID_init()
 	userYaw = userLift = 0;
 
 	// set gains
-	kp_roll = 0.5; // 0.5
-	ki_roll = 0.0; // 0.05
-	kd_roll = 10.0; // 10.0
+	kp_roll = 1.5; // 0.5
+	ki_roll = 0.1; // 0.05
+	kd_roll = 20.0; // 10.0
 	kdd_roll = 0.0;
 
-	kp_pitch = 0.5;
-	ki_pitch = 0.0;
-	kd_pitch = 10.0;
+	kp_pitch = 1.5;
+	ki_pitch = 0.1;
+	kd_pitch = 20.0;
 	kdd_pitch = 0.0;
 
 	kp_yaw = 0.0;
@@ -97,11 +98,20 @@ void PID_calcForces()
 		case STABILIZE:
 			break;
 	}
-
-	torquex = kp_roll*errorRoll + ki_roll*intRoll + kd_roll*derRoll;
-	torquey = kp_pitch*errorPitch + ki_pitch*intPitch + kd_pitch*derPitch;
+introll1 = ki_roll*intRoll;
+intpitch1 = ki_pitch*intPitch;
+if (introll1 > 5.0) introll1 = 5.0;
+if (introll1 < -5.0) introll1 = -5.0;
+if (intpitch1 > 5.0) intpitch1 = 5.0;
+if (intpitch1 < -5.0) intpitch1 = -5.0;
+	torquex = kp_roll*errorRoll + introll1 + kd_roll*derRoll;
+	torquey = kp_pitch*errorPitch + intpitch1 + kd_pitch*derPitch;
 	torquez = kp_yaw*errorYaw + ki_yaw*intYaw + kd_yaw*derYaw;
 	liftz = targetLift;// + (2.0 - cos(ToRad(pitch)) - cos(ToRad(roll)))*targetLift;
 
+  if (torquex > TORQUEMAX) torquex = TORQUEMAX;
+  if (torquex < -TORQUEMAX) torquex = -TORQUEMAX;
+  if (torquey > TORQUEMAX) torquey = TORQUEMAX;
+  if (torquey < -TORQUEMAX) torquey = -TORQUEMAX;
 }
 
