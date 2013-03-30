@@ -73,7 +73,10 @@ void loop()
 		// check to see if i've flipped over
 		// if i have, kill motors and let me die gracefully
 		if (abs(roll) + abs(pitch) > KILL_ANGLE)
+		{
 			disarm_motors();
+			caution(CAUTION_ANGLE_KILL);
+		}
 
 #if DEBUG
 //		for (int i=0; i<6; i++)
@@ -105,6 +108,7 @@ void loop()
 #if DEBUG
 			SERIAL_DEBUG.println("heartbeat died");
 #endif
+			caution(CAUTION_COMM_LOST);
 		}
 
 		// decay the safemode lift is necessary
@@ -113,6 +117,8 @@ void loop()
 
 		if (debugmode > 0)
 			sendDebug();
+		if (dosendPID > 0)
+			sendPID();
 		// run this at 1Hz
 		if (divider_1Hz)
 			sendHeartbeat();

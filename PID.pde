@@ -4,7 +4,6 @@ float derRoll, derPitch, derYaw;
 float dderRoll, dderPitch, dderYaw;
 float lastRoll, lastPitch, lastYaw;
 float errorPitch, errorRoll, errorYaw, errorLift;
-float introll1, intpitch1;
 
 void PID_init()
 {
@@ -19,12 +18,12 @@ void PID_init()
 	userYaw = userLift = 0;
 
 	// set gains
-	kp_roll = 1.5; // 0.5
-	ki_roll = 0.1; // 0.05
-	kd_roll = 20.0; // 10.0
+	kp_roll = 0.8; // 0.8
+	ki_roll = 0.1; // 0.1
+	kd_roll = 20.0; // 20.0
 	kdd_roll = 0.0;
 
-	kp_pitch = 1.5;
+	kp_pitch = 0.8;
 	ki_pitch = 0.1;
 	kd_pitch = 20.0;
 	kdd_pitch = 0.0;
@@ -35,9 +34,10 @@ void PID_init()
 	kdd_yaw = 0.0;
 }
 
+
 void PID_update()
 {
-	// get targets TODO: check these live
+	// get targets
 	targetPitch = (((uint8_t)userPitch)-128)*0.1;
 	targetRoll = (((uint8_t)userRoll)-128)*0.1;
 	targetYaw = ((uint8_t)userYaw)*2.0;
@@ -50,16 +50,37 @@ void PID_update()
 	errorYaw = targetYaw - yaw;
 	errorLift = targetLift - lift; // ???
 
-	// update PID elements
-	intPitch += errorPitch*0.001;
-	derPitch = 0.1*(errorPitch - lastPitch) + 0.9*derPitch;
-	intRoll += errorRoll*0.001;
-	derRoll = 0.1*(errorRoll - lastRoll) + 0.9*derRoll;
-	intYaw += errorYaw*0.001;
-	derYaw = 0.1*(errorYaw - lastYaw) + 0.9*derYaw; // TODO fix problems mod 360deg
-lastPitch = errorPitch;
-lastRoll = errorRoll;
-lastYaw = errorYaw;
+	// derivative, with some smoothing?
+	derPitch = 0.5*(errorPitch - lastPitch) + 0.5*derPitch;
+	derRoll = 0.5*(errorRoll - lastRoll) + 0.5*derRoll;
+	derYaw = 0.5*(errorYaw - lastYaw) + 0.5*derYaw; // TODO fix problems mod 360deg
+	lastPitch = errorPitch;
+	lastRoll = errorRoll;
+	lastYaw = errorYaw;
+
+	// note on integral part:
+	/* the units are technically degrees*seconds here
+	  so maybe it's best to divide by some stability timescale, like 0.25 sec
+		then the units will be just degrees, like the proportional term
+		I won't implement this scaling yet, because it can be accounted for in the gain
+	*/
+
+	// only integrate if we are flying, or close to
+	// this is so that it doesnt sit around integrating
+	// while it's on slightly angled ground
+	if (targetLift > 60) // flight usually occurs around 90-100
+	{
+		intPitch += errorPitch*0.005;
+		intRoll += errorRoll*0.005;
+		intYaw += errorYaw*0.005;
+	}
+
+	// put bounds on integral part
+	if (intRoll > PID_INTMAX) intRoll = PID_INTMAX;
+	if (intRoll < -PID_INTMAX) intRoll = -PID_INTMAX;
+	if (intPitch > PID_INTMAX) intPitch = PID_INTMAX;
+	if (intPitch < -PID_INTMAX) intPitch = -PID_INTMAX;
+
 #ifdef DEBUG
 /*	
 	SERIAL_DEBUG.print(errorPitch);
@@ -98,20 +119,17 @@ void PID_calcForces()
 		case STABILIZE:
 			break;
 	}
-introll1 = ki_roll*intRoll;
-intpitch1 = ki_pitch*intPitch;
-if (introll1 > 5.0) introll1 = 5.0;
-if (introll1 < -5.0) introll1 = -5.0;
-if (intpitch1 > 5.0) intpitch1 = 5.0;
-if (intpitch1 < -5.0) intpitch1 = -5.0;
-	torquex = kp_roll*errorRoll + introll1 + kd_roll*derRoll;
-	torquey = kp_pitch*errorPitch + intpitch1 + kd_pitch*derPitch;
+
+	// add it all together
+	torquex = kp_roll*errorRoll + ki_roll*intRoll + kd_roll*derRoll;
+	torquey = kp_pitch*errorPitch + ki_pitch*intPitch + kd_pitch*derPitch;
 	torquez = kp_yaw*errorYaw + ki_yaw*intYaw + kd_yaw*derYaw;
 	liftz = targetLift;// + (2.0 - cos(ToRad(pitch)) - cos(ToRad(roll)))*targetLift;
 
-  if (torquex > TORQUEMAX) torquex = TORQUEMAX;
-  if (torquex < -TORQUEMAX) torquex = -TORQUEMAX;
-  if (torquey > TORQUEMAX) torquey = TORQUEMAX;
-  if (torquey < -TORQUEMAX) torquey = -TORQUEMAX;
+	// put bounds on overal torque
+  if (torquex > TORQUEMAX) {torquex = TORQUEMAX; caution(CAUTION_TORQUE_MAX);}
+  if (torquex < -TORQUEMAX) {torquex = -TORQUEMAX; caution(CAUTION_TORQUE_MAX);}
+  if (torquey > TORQUEMAX) {torquey = TORQUEMAX; caution(CAUTION_TORQUE_MAX);}
+  if (torquey < -TORQUEMAX) {torquey = -TORQUEMAX; caution(CAUTION_TORQUE_MAX);}
 }
 

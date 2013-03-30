@@ -16,11 +16,11 @@ void set_motorspeed()
 	for (i=0;i<6;i++)
 	{
 		if (temp[i] < ESC_ARM_VAL) temp[i] = ESC_ARM_VAL;
-		if (temp[i] > ESC_MAX_VAL) temp[i] = ESC_MAX_VAL;
+		if (temp[i] > ESC_MAX_VAL) {temp[i] = ESC_MAX_VAL; caution(CAUTION_MOTOR_MAX);}
 		motorval[i] = (uint8_t)temp[i];
 	}
 #ifdef DEBUG
-
+/*
 	SERIAL_DEBUG.print(motorval[0]);
 	SERIAL_DEBUG.print("\t");
 	SERIAL_DEBUG.print(motorval[1]);
@@ -32,7 +32,7 @@ void set_motorspeed()
 	SERIAL_DEBUG.print(motorval[4]);
 	SERIAL_DEBUG.print("\t");
 	SERIAL_DEBUG.println(motorval[5]);
-
+*/
 #endif
 	write_motors();
 }

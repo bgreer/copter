@@ -1,5 +1,5 @@
 
-#define VERSION "0.1"
+#define VERSION "0.5"
 
 // AVR runtime
 //#include <avr/io.h>
@@ -9,9 +9,10 @@
 
 #define PIN_ARM_BUTTON 22
 
-#define DEBUG 0
+#define DEBUG 1
 #define TIMING 0
 #define ALLOW_PHYSICAL_ARMING 0
+#define SEND_CAUTIONS 1
 
 // some math stuff
 #define ToRad(x) (x*0.01745329252)
@@ -49,7 +50,8 @@
 // if the copter rolls or pitches by more than this, kill motors and die gracefully
 #define KILL_ANGLE 70.0 // in degrees
 
-#define TORQUEMAX 30.0
+#define TORQUEMAX 50.0
+#define PID_INTMAX 10.0
 
 // Arduino stuff
 #include "Arduino.h"
@@ -75,6 +77,10 @@
 #define OPCODE_FLIGHTMODE 0x06 // set flight mode
 #define OPCODE_USERINPUT 0x07 // set user targetted pitch, roll, yaw, lift
 #define OPCODE_SENDSTATS 0x08 // send current stats to basestation
+#define OPCODE_PID_KP 0x09 // update PID proportional gain
+#define OPCODE_PID_KD 0x10 // update PID derivative gain
+#define OPCODE_PID_KI 0x11 // update PID integral gain
+#define OPCODE_PID_CHECK 0x12 // send current PID values for checking
 
 // for sending data back to the base station
 #define COMM_START 0x53
@@ -86,6 +92,15 @@
 #define COMM_MODE_BATT 0x05
 #define COMM_MODE_HELLO 0x06
 #define COMM_MODE_STATS 0x07
+#define COMM_MODE_CAUTION 0x08
+#define COMM_MODE_PID 0x09
+
+// caution messages
+#define CAUTION_MOTOR_MAX 0x80
+#define CAUTION_TORQUE_MAX 0x81
+#define CAUTION_INT_MAX 0x82
+#define CAUTION_COMM_LOST 0x83
+#define CAUTION_ANGLE_KILL 0x84
 
 // Motor Control
 #define ESC_ARM_VAL 16
@@ -114,6 +129,7 @@ float targetPitch, targetRoll, targetYaw, targetLift, safemodeLift;
 float kp_roll, ki_roll, kd_roll, kdd_roll;
 float kp_pitch, ki_pitch, kd_pitch, kdd_pitch;
 float kp_yaw, ki_yaw, kd_yaw, kdd_yaw;
+float kftemp;
 int8_t userPitch, userRoll, userYaw;
 int8_t userLift;
 float liftz, torquez, torquex, torquey;
@@ -129,11 +145,13 @@ uint8_t wirelessOpcode = 0x00;
 uint8_t wirelessLength = 0;
 uint8_t wirelessPackage[WIRELESS_BYTELIMIT];
 uint8_t debugmode = 0;
+uint8_t dosendPID = 0;
 
 // wireless heartbeat
 uint8_t heartbeat = 0;
 uint32_t lastHeartbeat = 0;
 uint32_t commtimer;
+uint32_t cautiontimer = 0;
 
 // debug info
 // 0 - IMU info
@@ -151,6 +169,7 @@ static void quick_start();
 static void checkWireless();
 static void parseCommand();
 static void sendDebug();
+
 // motors.pde TODO: make my naming convention sane
 static void write_motors();
 static void init_motors();

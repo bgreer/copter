@@ -170,6 +170,34 @@ static void parseCommand()
 		case OPCODE_SENDSTATS:
 			debugmode = 1;
 			break;
+		// start PID stuff
+		case OPCODE_PID_KP:
+			if (wirelessLength >= 6)
+			{
+				memcpy(&kftemp, wirelessPackage+2, 4);
+				if (kftemp >= 0.0 && kftemp < 500.0)
+					kp_roll = kp_pitch = kftemp;
+			}
+			break;
+		case OPCODE_PID_KD:
+			if (wirelessLength >= 6)
+			{
+				memcpy(&kftemp, wirelessPackage+2, 4);
+				if (kftemp >= 0.0 && kftemp < 500.0)
+					kd_roll = kd_pitch = kftemp;
+			}
+			break;
+		case OPCODE_PID_KI:
+			if (wirelessLength >= 6)
+			{
+				memcpy(&kftemp, wirelessPackage+2, 4);
+				if (kftemp >= 0.0 && kftemp < 500.0)
+					ki_roll = ki_pitch = kftemp;
+			}
+			break;
+		case OPCODE_PID_CHECK:
+			dosendPID = 1;
+			break;
 	}
 	// at the end of execution, reset opcode
 	wirelessOpcode = OPCODE_NOP;
@@ -185,6 +213,36 @@ uint8_t verify (uint8_t chk)
 		chk2 ^= wirelessPackage[ii];
 	
 	return (chk == chk2);
+}
+
+// send a caution message back to the basestation
+void caution(uint8_t message)
+{
+#ifdef SEND_CAUTIONS
+	if (millis() - cautiontimer > 1000)
+	{
+		SERIAL_WIRELESS.write(COMM_START);
+		SERIAL_WIRELESS.write(COMM_MODE_CAUTION);
+		SERIAL_WIRELESS.write(message);
+		SERIAL_WIRELESS.write(COMM_END);
+		cautiontimer = millis();
+	}
+#endif
+}
+
+// send current PID gain values to basestation
+static void sendPID()
+{
+#ifdef DEBUG
+	SERIAL_DEBUG.println("sending PID info..");
+#endif
+	SERIAL_WIRELESS.write(COMM_START);
+	SERIAL_WIRELESS.write(COMM_MODE_PID);
+	SERIAL_WIRELESS.write((uint8_t*)&kp_roll,4);
+	SERIAL_WIRELESS.write((uint8_t*)&kd_roll,4);
+	SERIAL_WIRELESS.write((uint8_t*)&ki_roll,4);
+	SERIAL_WIRELESS.write(COMM_END);
+	dosendPID = 0;
 }
 
 static void sendHeartbeat()
