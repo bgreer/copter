@@ -31,6 +31,12 @@ int main (int argc, char* argv[])
 	/* at exit, call SDL quit */
 	atexit(SDL_Quit);
 
+	if( !SDL_SetVideoMode(200,200,0,0) ) {
+		printf("Could not init SDL window\n");
+		exit(EXIT_FAILURE);
+	}
+
+
 	/* get joystick */
 	if (SDL_NumJoysticks()>0)
 	{

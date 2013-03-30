@@ -22,6 +22,28 @@ uint8_t checksum (uint8_t num)
 	return ret;
 }
 
+void parseCaution(uint8_t value)
+{
+	printf("\nCAUTION: ");
+	switch (value)
+	{
+		case 0x80: /* motor max */
+			printf("motor speed max");
+			break;
+		case 0x81: /* torque max */
+			printf("torque max");
+			break;
+		case 0x83: /* comm lost */
+			printf("comm link lost");
+			break;
+		case 0x84: /* angle kill */
+			printf("copter flipped, motors killed");
+			break;
+	}
+	printf("\n");
+	fflush(stdout);
+}
+
 void parseCommand ()
 {
 	/* just conform the command format */
@@ -62,11 +84,23 @@ void parseCommand ()
 			printf("Flight Mode = %d\n", (uint8_t)inbuffer[2]);
 			printf("Armed = %d\n", (uint8_t)inbuffer[3]);
 			break;
+		case 0x08: /* caution */
+			parseCaution((uint8_t)inbuffer[2]);
+			break;
+		case 0x09: /* pid values */
+			memcpy(&KPin, inbuffer+2, 4);
+			memcpy(&KDin, inbuffer+6, 4);
+			memcpy(&KIin, inbuffer+10, 4);
+			printf("\nPID Gain: P=%f, D=%f, I=%f\n", KPin, KDin, KIin);
+			fflush(stdout);
+			break;
 		default:
 			printf("Unmatched: %d\n", (uint8_t)inbuffer[1]);
 			break;
 	}
+	fflush(stdout);
 }
+
 
 void sendControls()
 {
@@ -83,6 +117,37 @@ void sendControls()
 	write(fd, outbuffer, 8);
 }
 
+void sendP ()
+{
+	printf(" Sending P.. ");
+	outbuffer[0] = 'S';
+	outbuffer[1] = 0x09;
+	memcpy(outbuffer+2, &KPout, 4);
+	outbuffer[6] = 'E';
+	write(fd, outbuffer, 7);
+}
+
+void sendI ()
+{
+	printf(" Sending I.. ");
+	outbuffer[0] = 'S';
+	outbuffer[1] = 0x11;
+	memcpy(outbuffer+2, &KIout, 4);
+	outbuffer[6] = 'E';
+	write(fd, outbuffer, 7);
+}
+
+void sendD ()
+{
+	printf(" Sending D.. ");
+	outbuffer[0] = 'S';
+	outbuffer[1] = 0x10;
+	memcpy(outbuffer+2, &KDout, 4);
+	outbuffer[6] = 'E';
+	write(fd, outbuffer, 7);
+}
+
+
 void sendHeartbeat ()
 {
 	write(fd, "SHE", 3);
@@ -93,6 +158,15 @@ void armMotors ()
 	printf("Arming motors.\n");
 	outbuffer[0] = 'S';
 	outbuffer[1] = 0x02;
+	outbuffer[2] = 'E';
+	write(fd, outbuffer, 3);
+}
+
+void getPID ()
+{
+	printf(" Getting PID values.. ");
+	outbuffer[0] = 'S';
+	outbuffer[1] = 0x12;
 	outbuffer[2] = 'E';
 	write(fd, outbuffer, 3);
 }
@@ -141,7 +215,7 @@ void checkWireless ()
 	}
 
 	/* read a single byte */
-	num = read(fd, &inbyte, 64);
+	num = read(fd, &inbyte, 32);
 	for (ii=0; ii<num; ii++)
 	{
 		if ((bufferindex == 0 && inbyte[ii] == 'S') || bufferindex > 0)

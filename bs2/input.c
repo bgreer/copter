@@ -1,6 +1,9 @@
 #include "SDL.h"
 #include "header.h"
 
+int inputmode = 0;
+uint8_t userinputbuffer[128];
+int userinputbufferpos = 0; // im too tired to name properly
 
 /* functions for converting input to controls */
 
@@ -91,19 +94,95 @@ void mapLift (Sint16 input)
 	}
 }
 
+void parseuserinput()
+{
+	float temp;
+	userinputbuffer[userinputbufferpos] = '\0';
+	temp = atof(userinputbuffer);
+	printf("\nUser input: %f\n", temp);
+	if (temp >= 0.0 && temp <= 500.)
+	{
+		switch (inputmode)
+		{
+			case 1: // P
+				KPout = temp;
+				break;
+			case 2: // I
+				KIout = temp;
+				break;
+			case 3: // D
+				KDout = temp;
+				break;
+		}
+	} else {
+		printf("Invalid input!\n");
+	}
+	inputmode = 0;
+	userinputbufferpos =0;
+}
 
 
 /* functions for handling direct input */
 
 void handleKeydown (SDLKey key)
 {
-	printf("keydown: %d\n", key);
+	float tempin;
+//	printf("keydown: %d\n", key);
+	if (inputmode > 0 && key != 13)
+	{
+		userinputbuffer[userinputbufferpos] = (uint8_t)key;
+		userinputbufferpos ++;
+		if (userinputbufferpos == 128)
+		{
+			printf("\nuser input buffer overflow\n");
+			userinputbufferpos = 0;
+		}
+	}
 	switch (key)
 	{
 		case SDLK_ESCAPE:
 			break;
+		case 112: /* P */
+			printf("\nType new P value: ");
+			inputmode = 1;
+			break;
+		case 105: /* I */
+			printf("\nType new I value: ");
+			inputmode = 2;
+			break;
+		case 100: /* D */
+			printf("\nType new D value: ");
+			inputmode = 3;
+			break;
+		case 115: /* S */
+			printf("\nCurrent PID values: ");
+			printf("P = %f, ", KPin);
+			printf("I = %f, ", KIin);
+			printf("D = %f\n", KDin);
+			printf("    New PID values: ");
+			printf("P = %f, ", KPout);
+			printf("I = %f, ", KIout);
+			printf("D = %f\n", KDout);
+			fflush(stdout);
+			break;
+		case 103: /* G */
+			getPID();
+			break;
+		case 13: /* enter */
+			parseuserinput();
+			break;
+		case 113: /* Q */
+			sendP();
+			break;
+		case 119: /* W */
+			sendI();
+			break;
+		case 101: /* E */
+			sendD();
+			break;
 	}
 }
+
 
 void handleKeyup (SDLKey key)
 {
