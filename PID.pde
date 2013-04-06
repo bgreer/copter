@@ -17,21 +17,32 @@ void PID_init()
 	userPitch = userRoll = 128;
 	userYaw = userLift = 0;
 
-	// set gains
-	kp_roll = 0.8; // 0.8
-	ki_roll = 0.1; // 0.1
-	kd_roll = 20.0; // 20.0
-	kdd_roll = 0.0;
+        if (verifyPIDvals())
+        {
+          getPIDvals();
+#ifdef DEBUG
+          SERIAL_DEBUG.println("grabbed PID values from EEPROM");
+          SERIAL_DEBUG.println(kp_roll);
+          SERIAL_DEBUG.println(ki_roll);
+          SERIAL_DEBUG.println(kd_roll);
+#endif
+        } else {
+#ifdef DEBUG
+          SERIAL_DEBUG.println("no PID vals in EEPROM");
+#endif
+          kp_roll = 0.5; // 0.5
+	  ki_roll = 0.1; // 0.1
+	  kd_roll = 20.0; // 20.0
 
-	kp_pitch = 0.8;
-	ki_pitch = 0.1;
-	kd_pitch = 20.0;
-	kdd_pitch = 0.0;
+	  kp_pitch = 0.5;
+	  ki_pitch = 0.1;
+	  kd_pitch = 20.0;
+          savePIDvals();
+        }
 
 	kp_yaw = 0.0;
 	ki_yaw = 0.0;
 	kd_yaw = 0.0;
-	kdd_yaw = 0.0;
 }
 
 
@@ -82,7 +93,7 @@ void PID_update()
 	if (intPitch < -PID_INTMAX) intPitch = -PID_INTMAX;
 
 #ifdef DEBUG
-/*	
+	/*
 	SERIAL_DEBUG.print(errorPitch);
 	SERIAL_DEBUG.print("\t");
 	SERIAL_DEBUG.print(intPitch);
@@ -90,7 +101,7 @@ void PID_update()
 	SERIAL_DEBUG.print(derPitch);
 	SERIAL_DEBUG.print("\t");
 	SERIAL_DEBUG.println(pitch);
-*/	
+	*/
 #endif
 	// 
 }

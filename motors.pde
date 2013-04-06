@@ -17,6 +17,7 @@ void set_motorspeed()
 	{
 		if (temp[i] < ESC_ARM_VAL) temp[i] = ESC_ARM_VAL;
 		if (temp[i] > ESC_MAX_VAL) {temp[i] = ESC_MAX_VAL; caution(CAUTION_MOTOR_MAX);}
+		if (targetLift < 10) temp[i] = ESC_ARM_VAL;
 		motorval[i] = (uint8_t)temp[i];
 	}
 #ifdef DEBUG

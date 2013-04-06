@@ -176,23 +176,30 @@ static void parseCommand()
 			{
 				memcpy(&kftemp, wirelessPackage+2, 4);
 				if (kftemp >= 0.0 && kftemp < 500.0)
+                                {
 					kp_roll = kp_pitch = kftemp;
+                                        savePIDvals();
+                                }
 			}
 			break;
 		case OPCODE_PID_KD:
 			if (wirelessLength >= 6)
 			{
 				memcpy(&kftemp, wirelessPackage+2, 4);
-				if (kftemp >= 0.0 && kftemp < 500.0)
+				if (kftemp >= 0.0 && kftemp < 500.0) {
 					kd_roll = kd_pitch = kftemp;
+                                        savePIDvals();
+                                }
 			}
 			break;
 		case OPCODE_PID_KI:
 			if (wirelessLength >= 6)
 			{
 				memcpy(&kftemp, wirelessPackage+2, 4);
-				if (kftemp >= 0.0 && kftemp < 500.0)
+				if (kftemp >= 0.0 && kftemp < 500.0) {
 					ki_roll = ki_pitch = kftemp;
+                                        savePIDvals();
+                                }
 			}
 			break;
 		case OPCODE_PID_CHECK:

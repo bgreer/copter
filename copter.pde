@@ -178,7 +178,6 @@ static void quick_start()
 
 	init_motors();
 	// initialize PID controller
-	PID_init();
 
 	// start serial ports
 	SERIAL_WIRELESS.begin(WIRELESS_BAUD);
@@ -187,6 +186,7 @@ static void quick_start()
 #if DEBUG
 	SERIAL_DEBUG.begin(DEBUG_BAUD);
 #endif
+        PID_init();
 	// start I2C, SPI if needed here
 	// set pinmodes and states
 	pinMode(LED_STATUS, OUTPUT);
