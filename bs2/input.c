@@ -16,6 +16,7 @@ void mapRoll (Sint16 input)
 	temp /= 280.;
 	temp += 128;
 
+
 	if (temp < 0.0) temp = 0.0;
 	if (temp > 255.0) temp = 255.0;
 
@@ -33,6 +34,7 @@ void mapPitch (Sint16 input)
 	temp = input;
 	temp /= 280.;
 	temp += 128;
+
 
 	if (temp < 0.0) temp = 0.0;
 	if (temp > 255.0) temp = 255.0;

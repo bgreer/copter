@@ -72,10 +72,14 @@ void parseCommand ()
 			printf("\nPosition: < %f, %f, %f >\n", xpos, ypos, altitude);
 			break;
 		case 0x04: /* motors */
-			printf("motors\n");
+			memcpy(motorspeed, inbuffer+2, 6);
+			printf("\nMotor Speed: %d %d %d %d %d %d\n", motorspeed[0], motorspeed[1], motorspeed[2], 
+				motorspeed[3], motorspeed[4], motorspeed[5]);
 			break;
 		case 0x05: /* battery */
-			printf("battery\n");
+			memcpy(batterylevel, inbuffer+2, 6);
+			printf("\nBattery Array: %d %d %d %d %d %d\n", batterylevel[0], batterylevel[1], 
+				batterylevel[2], batterylevel[3], batterylevel[4], batterylevel[5]);
 			break;
 		case 0x06: /* hello */
 			printf("\nCopter says hello.\n");
@@ -83,6 +87,8 @@ void parseCommand ()
 		case 0x07: /* flight stats */
 			printf("Flight Mode = %d\n", (uint8_t)inbuffer[2]);
 			printf("Armed = %d\n", (uint8_t)inbuffer[3]);
+			memcpy(&flighttime, inbuffer+4, 4);
+			printf("Flight Time = %f min\n", flighttime/60000.);
 			break;
 		case 0x08: /* caution */
 			parseCaution((uint8_t)inbuffer[2]);
@@ -91,7 +97,14 @@ void parseCommand ()
 			memcpy(&KPin, inbuffer+2, 4);
 			memcpy(&KDin, inbuffer+6, 4);
 			memcpy(&KIin, inbuffer+10, 4);
-			printf("\nPID Gain: P=%f, D=%f, I=%f\n", KPin, KDin, KIin);
+			printf("\nPID Gain: P=%f, I=%f, D=%f\n", KPin, KIin, KDin);
+			fflush(stdout);
+			break;
+		case 0x0A: /* pid integral */
+			memcpy(&intPitch, inbuffer+2, 4);
+			memcpy(&intRoll, inbuffer+6, 4);
+			memcpy(&intYaw, inbuffer+10, 4);
+			printf("\nPID Integral Values: P=%f, R=%f, Y=%f\n", intPitch, intRoll, intYaw);
 			fflush(stdout);
 			break;
 		default:
@@ -112,7 +125,7 @@ void sendControls()
 	outbuffer[5] = sendLift;
 	outbuffer[6] = checksum(6);
 	outbuffer[7] = 'E';
-	printf("(send %d) ", (uint8_t)outbuffer[6]);
+//	printf("(send %d) ", (uint8_t)outbuffer[6]);
 	fflush(stdout);
 	write(fd, outbuffer, 8);
 }
@@ -165,6 +178,7 @@ void armMotors ()
 void getPID ()
 {
 	printf(" Getting PID values.. ");
+	fflush(stdout);
 	outbuffer[0] = 'S';
 	outbuffer[1] = 0x12;
 	outbuffer[2] = 'E';
@@ -208,7 +222,7 @@ void checkWireless ()
 	Uint8 inbyte[64];
 
 	/* allow timeout on a command */
-	if (bufferindex > 0 && SDL_GetTicks() - commtimer > 500)
+	if (bufferindex > 0 && SDL_GetTicks() - commtimer > 2000)
 	{
 		printf("WARNING: comm timeout\n");
 		bufferindex = 0;
@@ -240,28 +254,39 @@ void checkWireless ()
 
 void openComm ()
 {
-	fd = open(joyname, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
+
+	fd = open(commname, O_RDWR | O_NOCTTY | O_SYNC);
+	
 	if (fd == -1)
 	{
 		printf("ERROR: Unable to open comm port!\n");
-	} else {
-		fcntl(fd, F_SETFL, 0);
+//	} else {
+//		fcntl(fd, F_SETFL, 0);
 	}
-	tcgetattr(fd, &options);
-	cfsetispeed(&options, B38400);
-	cfsetispeed(&options, B38400);
-	options.c_cflag |= (CLOCAL | CREAD);
-	options.c_cflag &= ~PARENB;
-	options.c_cflag &= ~CSTOPB;
-	options.c_cflag &= ~CSIZE;
-	options.c_cflag |= CS8;
-/*	options.c_cflag &= ~( ICANON | ECHO | ECHOE |ISIG );
-	options.c_iflag &= ~(IXON | IXOFF | IXANY );
-	options.c_oflag &= ~OPOST;
-*/
-	tcsetattr(fd, TCSANOW, &options);
 
-	fcntl(fd, F_SETFL, FNDELAY);
+	memset(&options, 0, sizeof(options));
+	cfsetispeed(&options, B38400);
+	cfsetispeed(&options, B38400);
+	options.c_cflag = (options.c_cflag & ~CSIZE) | CS8; // 8-bit chars
+	options.c_iflag &= ~IGNBRK; // ignore break chars
+	options.c_lflag = 0; // no signaling chars, no echo, no canonical processing
+	options.c_oflag = 0; // no remapping, no delays
+	options.c_cc[VMIN]  = 0; // reading doesnt block
+	options.c_cc[VTIME] = 3; // 0.5s readout time
+	options.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
+	options.c_cflag |= (CLOCAL | CREAD); // ignore modem controls, enable reading
+	options.c_cflag &= ~(PARENB | PARODD); // shut off parity
+	options.c_cflag |= 0; // parity option
+	options.c_cflag &= ~CSTOPB;
+	options.c_cflag &= ~CRTSCTS;
+
+	if (tcsetattr (fd, TCSANOW, &options) != 0)
+	{
+		printf("error %d from tcsetattr", errno);
+	}
+
+
+//	fcntl(fd, F_SETFL, FNDELAY);
 
 	bufferlength = 64;
 	bufferindex = 0;

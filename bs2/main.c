@@ -19,7 +19,7 @@ int main (int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
-	joyname = argv[1];
+	commname = argv[1];
 
 	/* init video */
 	if (SDL_Init(SDL_INIT_AUDIO|SDL_INIT_VIDEO|SDL_INIT_JOYSTICK) < 0)
@@ -120,6 +120,7 @@ int main (int argc, char* argv[])
 					break;
 			}
 		}
+		SDL_Delay(1);
 	}
 
 	/* close comm */
