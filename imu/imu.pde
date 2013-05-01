@@ -6,12 +6,12 @@
 #define GPS_OK 3
 #define GPS_GOOD 4
 // sensor scaling and bias
-#define correct_gyroX(x) (x*-0.2665 - 48.510) // in millirad/s
-#define correct_gyroY(x) (x*0.2665 + 7.4287)
-#define correct_gyroZ(x) (x*-0.2665 + 6.1119)
+#define correct_gyroX(x) (x*-1.0642 - 44.67405) // in millirad/s
+#define correct_gyroY(x) (x*1.0642 + 7.33716)
+#define correct_gyroZ(x) (x*-1.0642 + 3.22816)
 
-#define correct_accelX(x) (x*0.117 - 49.0) // in cm/s^2
-#define correct_accelY(x) (x*-0.117 - 8.0)
+#define correct_accelX(x) (x*0.117 - 35.0) // in cm/s^2
+#define correct_accelY(x) (x*-0.117 + 10.0)
 #define correct_accelZ(x) (x*0.117 + 60.0)
 
 #define correct_magX(x) (x*0.860897 + 12.7283) // in mG
@@ -34,12 +34,12 @@ float magX, magY, magZ;
 float gps_xpos, gps_ypos, gps_zpos;
 float gps_xvel, gps_yvel;
 uint8_t new_gpspos, new_gpsvel, gps_quality;
-float AN[8], grav, mag, OFFSET[8];
+float AN[8], AN2[9], grav, mag, OFFSET[8];
 volatile uint8_t MuxSel = 0;
 volatile uint8_t analog_reference = DEFAULT;
 volatile int16_t analog_buffer[8];
-uint32_t time, time_gps, time_mag, lastcalled, lastoutput, lastgps;
-float dt, theta, phi, psi;
+uint32_t time, time_gps, time_mag, lastcalled, lastoutput, lastgps, lastgpsread;
+float dt, theta, phi, psi, currpitch;
 float g[3], m[3];
 
 SoftwareSerial outSerial(9, 8); // RX, TX
@@ -50,7 +50,7 @@ void setup()
 {
 	uint8_t ii, ij;
 	outSerial.begin(115200); // for sending data to main board
-	Serial.begin(9600); // for communicating with GPS
+	Serial.begin(115200); // for communicating with GPS
 	
 	pinMode(SERIAL_MUX_PIN, OUTPUT);
 	digitalWrite(SERIAL_MUX_PIN, HIGH); // enable GPS line
@@ -65,6 +65,7 @@ void setup()
 	gps_init();
 
 	imu.InitialQuat();
+	currpitch = 0.0;
 	// start calibration / settling cycle
 	for (ii=0; ii<SETTLE_LOOP; ii++)
 	{
@@ -73,7 +74,7 @@ void setup()
 		// blink some stuff
 		digitalWrite(BLUE_LED_PIN, HIGH);
 		digitalWrite(RED_LED_PIN, LOW);
-		imu.AHRSupdate();
+		//imu.AHRSupdate(); // god why was that there??
 		delay(5);
 		digitalWrite(BLUE_LED_PIN, LOW);
 		digitalWrite(RED_LED_PIN, HIGH);
@@ -82,25 +83,27 @@ void setup()
 	digitalWrite(RED_LED_PIN, LOW);
 
 	// set timers for main loop
-	time = millis();
+	time = micros();
 	time_gps = time_mag = time;
-	lastcalled = lastoutput = lastgps = 0;
+	lastcalled = lastoutput = lastgps = time;
 }
 
 void loop()
 {
 	time = micros();
-	if (time-lastcalled > 10)
+	dt = (time - lastcalled)*1e-6;
+	lastcalled = time;
+	// read all sensors
+	read_adc_raw(); // 500 us
+	Read_Compass(); // <100 us
+	imu.AHRSupdate(); // 400 us 
+
+	if (time-lastgpsread > 10000)
 	{
-		dt = (time - lastcalled)*0.000001;
-		lastcalled = time;
-		// read all sensors
-		read_adc_raw();
-		Read_Compass();
-		gps_update();
-		imu.AHRSupdate();
+		lastgpsread = time;
+		gps_update(); // 1200 us
 	}
-	if (time-lastoutput > 10000)
+	if (time-lastoutput > 100)
 	{
 		lastoutput = time;
 		imu.GetEuler();
@@ -110,12 +113,12 @@ void loop()
 		outSerial.write((byte*)&(imu.yaw), 4);
 		outSerial.write('\n'); // return
 
-/*		outSerial.print(imu.pitch, 4);
-		outSerial.print("\t");
-		outSerial.print(imu.roll, 4);
-		outSerial.print("\t");
-		outSerial.println(imu.yaw, 4);
-*/
+		Serial.print(imu.pitch, 4);
+		Serial.print("\t");
+		Serial.print(imu.roll, 4);
+		Serial.print("\t");
+		Serial.println(imu.yaw, 4);
+
 	}
 	if (time-lastgps > 1000000)
 	{

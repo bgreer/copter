@@ -25,16 +25,16 @@ void MPU6000_Init()
 	MPU6000_SPI_write(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
 	delay(1);
 	// sample rate
-	MPU6000_SPI_write(MPUREG_SMPLRT_DIV, 0x08);
+	MPU6000_SPI_write(MPUREG_SMPLRT_DIV, 0x04);
 	delay(1);
 	// low pass filter
-	MPU6000_SPI_write(MPUREG_CONFIG, BITS_DLPF_CFG_188HZ);
+	MPU6000_SPI_write(MPUREG_CONFIG, BITS_DLPF_CFG_256HZ_NOLPF2);
 	delay(1);
 	// gyro scale
-	MPU6000_SPI_write(MPUREG_GYRO_CONFIG, BITS_FS_500DPS);
+	MPU6000_SPI_write(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
 	delay(1);
 	// accel scale
-	MPU6000_SPI_write(MPUREG_ACCEL_CONFIG, 0x08);
+	MPU6000_SPI_write(MPUREG_ACCEL_CONFIG, 0x10);
 	delay(1);
 	// interrupt on data ready
 	MPU6000_SPI_write(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);
