@@ -55,17 +55,18 @@ void changeFlightmode(uint8_t newmode)
 void checkBattery(int index)
 {
 	// volts = read * 5 * 2.424 / 1024
-	batterylevel[index] = 0.118*analogRead(BATT_PIN[index]);
+	//batterylevel[index] = 0.118*analogRead(BATT_PIN[index]);
 }
 
 // check serial port for imu data
 void checkIMU()
 {
-	uint8_t count = 0;
 	char buffer[4];
+        float temp1, temp2, temp3, temp4;
+	uint8_t count = 0;
 
 	// allow for multiple things, but dont get stuck here
-	while (SERIAL_IMU.available() && count<64)
+	while (SERIAL_IMU.available() && count<24)
 	{
 		// check for start of wireless message
 		switch (SERIAL_IMU.read())
@@ -73,12 +74,35 @@ void checkIMU()
 			count++;
 			case 'I': // orientation
 				SERIAL_IMU.readBytes(buffer,4);
-				memcpy(&pitch,buffer,4);
+				memcpy(&temp1,buffer,4);
 				SERIAL_IMU.readBytes(buffer,4);
-				memcpy(&roll,buffer,4);
+				memcpy(&temp2,buffer,4);
 				SERIAL_IMU.readBytes(buffer,4);
-				memcpy(&yaw,buffer,4);
-				count += 12;
+				memcpy(&temp3,buffer,4);
+				SERIAL_IMU.readBytes(buffer,4);
+				memcpy(&temp4,buffer,4);
+                                if (temp1 + temp2 + temp3 == temp4)
+                                {
+                                  pitch = temp1;
+                                  roll = temp2;
+                                  yaw = temp3;
+                                  newimu = 1;
+                                  //SERIAL_DEBUG.println(pitch);
+                                //} else {
+                                //  SERIAL_DEBUG.print(temp4);
+                                //  SERIAL_DEBUG.print("\t");
+                                //  SERIAL_DEBUG.println(temp1+temp2+temp3);
+                                }
+				count += 16;
+#ifdef DEBUG
+			/*	
+				SERIAL_DEBUG.print(pitch);
+				SERIAL_DEBUG.print("\t");
+				SERIAL_DEBUG.print(roll);
+				SERIAL_DEBUG.print("\t");
+				SERIAL_DEBUG.println(yaw);
+				*/
+#endif
 				break;
 			case 'S': // gps status
 				SERIAL_IMU.readBytes((char*)&gps_quality,1);
@@ -103,4 +127,12 @@ void checkIMU()
 		}
 	}
 	
+}
+
+// poll for imu data
+void pollIMU()
+{
+
+	SERIAL_IMU.write(0x01);
+
 }

@@ -40,7 +40,8 @@ volatile uint8_t analog_reference = DEFAULT;
 volatile int16_t analog_buffer[8];
 uint32_t time, time_gps, time_mag, lastcalled, lastoutput, lastgps, lastgpsread;
 float dt, theta, phi, psi, currpitch;
-float g[3], m[3];
+float g[3], m[3], sum;
+uint8_t inbyte;
 
 SoftwareSerial outSerial(9, 8); // RX, TX
 
@@ -49,11 +50,13 @@ openIMU imu(AN+0,AN+1,AN+2,AN+3,AN+4,AN+5,&magX,&magY,&magZ,&dt);
 void setup()
 {
 	uint8_t ii, ij;
-	outSerial.begin(115200); // for sending data to main board
-	Serial.begin(115200); // for communicating with GPS
+	outSerial.begin(57600); // for sending data to main board
+	outSerial.setTimeout(1);
+	Serial.begin(57600); // for communicating with main board
+        Serial.setTimeout(1);
 	
 	pinMode(SERIAL_MUX_PIN, OUTPUT);
-	digitalWrite(SERIAL_MUX_PIN, HIGH); // enable GPS line
+	digitalWrite(SERIAL_MUX_PIN, LOW); // enable main
 
 	pinMode(RED_LED_PIN, OUTPUT);
 	pinMode(BLUE_LED_PIN, OUTPUT);
@@ -96,30 +99,35 @@ void loop()
 	// read all sensors
 	read_adc_raw(); // 500 us
 	Read_Compass(); // <100 us
-	imu.AHRSupdate(); // 400 us 
+	imu.AHRSupdate(); // 400 us
 
+	// check for IMU data request
+	if (time-lastoutput > 10000)
+	{
+		digitalWrite(RED_LED_PIN, HIGH);
+		lastoutput = time;
+		inbyte = outSerial.read();
+		imu.GetEuler();
+		sum = imu.pitch + imu.roll + imu.yaw;
+		Serial.write('I');
+		Serial.write((byte*)&(imu.pitch), 4);
+		Serial.write((byte*)&(imu.roll), 4);
+		Serial.write((byte*)&(imu.yaw), 4);
+		Serial.write((byte*)&(sum), 4);
+		Serial.write('\n'); // return
+		digitalWrite(RED_LED_PIN, LOW);
+		if (fabs(imu.pitch) > 45. || fabs(imu.roll) > 45.)
+			digitalWrite(BLUE_LED_PIN, HIGH);
+		else
+			digitalWrite(BLUE_LED_PIN, LOW);
+	}
+/*
 	if (time-lastgpsread > 10000)
 	{
 		lastgpsread = time;
 		gps_update(); // 1200 us
 	}
-	if (time-lastoutput > 100)
-	{
-		lastoutput = time;
-		imu.GetEuler();
-		outSerial.write('I');
-		outSerial.write((byte*)&(imu.pitch), 4);
-		outSerial.write((byte*)&(imu.roll), 4);
-		outSerial.write((byte*)&(imu.yaw), 4);
-		outSerial.write('\n'); // return
 
-		Serial.print(imu.pitch, 4);
-		Serial.print("\t");
-		Serial.print(imu.roll, 4);
-		Serial.print("\t");
-		Serial.println(imu.yaw, 4);
-
-	}
 	if (time-lastgps > 1000000)
 	{
 		lastgps = time;
@@ -142,5 +150,6 @@ void loop()
 			outSerial.write('\n'); // return	
 		}
 	}
+	*/
 }
 

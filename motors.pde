@@ -1,4 +1,4 @@
-
+uint8_t motordebug = 0;
 
 // given target body forces and torques, set appropriate motor speeds
 // the signs given to torquez may need to be reversed, or just swap the wires on the motors
@@ -15,11 +15,15 @@ void set_motorspeed()
 	temp[5] = liftz + torquex*0.5 + torquey*0.87 - torquez;
 	for (i=0;i<6;i++)
 	{
-		if (temp[i] < ESC_ARM_VAL) temp[i] = ESC_ARM_VAL;
-		if (temp[i] > ESC_MAX_VAL) {temp[i] = ESC_MAX_VAL; caution(CAUTION_MOTOR_MAX);}
-		if (targetLift < 10) temp[i] = ESC_ARM_VAL;
+		if (temp[i] < 0) temp[i] = 0;
+		if (temp[i] > ESC_MAX_VAL-ESC_ARM_VAL) {temp[i] = ESC_MAX_VAL-ESC_ARM_VAL; caution(CAUTION_MOTOR_MAX);}
+		temp[i] += ESC_ARM_VAL;
 		motorval[i] = (uint8_t)temp[i];
 	}
+#ifdef MOTOR_DEBUG
+	//for (i=0;i<6;i++) motorval[i] = ESC_ARM_VAL;
+	//motorval[motordebug] = liftz;
+#endif
 #ifdef DEBUG
 /*
 	SERIAL_DEBUG.print(motorval[0]);
@@ -43,7 +47,12 @@ static void write_motors()
 {
 	if (!armed)
 	{
-		motorval[0] = motorval[1] = motorval[2] = motorval[3] = motorval[4] = motorval[5] = 0;
+		motorval[0] = 0;
+                motorval[1] = 0;
+                motorval[2] = 0;
+                motorval[3] = 0;
+                motorval[4] = 0;
+                motorval[5] = 0;
 	}
 	motor[0].write(motorval[0]);
 	motor[1].write(motorval[1]);
@@ -80,6 +89,8 @@ static void arm_motors()
 	armed = 1;
 	digitalWrite(LED_ARMED, HIGH);
 	setall_motors(ESC_ARM_VAL);
+	// set initial yaw as well
+	initYaw = yaw;
 #if DEBUG
 	SERIAL_DEBUG.println("MOTORS ARMED");
 #endif
@@ -90,9 +101,9 @@ static void disarm_motors()
 {
 	throttle = 0;
 	setall_motors(ESC_ARM_VAL);
-targetLift = 0;
+	targetLift = 0;
 	liftz = 0;
-	armed = 0;
+//	armed = 0;
 	digitalWrite(LED_ARMED, LOW);
 #if DEBUG
 	SERIAL_DEBUG.println("MOTORS DISARMED");

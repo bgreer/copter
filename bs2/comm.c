@@ -215,6 +215,23 @@ void requestStats ()
 	statstimer = SDL_GetTicks();
 }
 
+void startlog ()
+{
+	printf("Starting Log.\n");
+	outbuffer[0] = 'S';
+	outbuffer[1] = 0x14;
+	outbuffer[2] = 'E';
+	write(fd, outbuffer, 3);
+}
+
+void printlog ()
+{
+	printf("Printing Log.\n");
+	outbuffer[0] = 'S';
+	outbuffer[1] = 0x17;
+	outbuffer[2] = 'E';
+	write(fd, outbuffer, 3);
+}
 
 void checkWireless ()
 {

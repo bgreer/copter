@@ -31,7 +31,7 @@ static void checkWireless()
 				if (wirelessLength > 1)
 					wirelessOpcode = wirelessPackage[1];
 				heartbeat = 1;
-				lastHeartbeat = micros();
+				lastHeartbeat = millis();
 			} else {
 				wirelessLength++;
 				// check past bounds
@@ -155,6 +155,7 @@ static void parseCommand()
 					userLift = wirelessPackage[5];
 				}
 #if DEBUG
+/*
 				SERIAL_DEBUG.print((uint8_t)userPitch);
 				SERIAL_DEBUG.print("\t");
 				SERIAL_DEBUG.print((uint8_t)userRoll);
@@ -164,6 +165,7 @@ static void parseCommand()
 				SERIAL_DEBUG.print((uint8_t)userLift);
 				SERIAL_DEBUG.print("\t");
 				SERIAL_DEBUG.println((uint8_t)wirelessPackage[6]);
+*/
 #endif
 			}
 			break;
@@ -175,7 +177,7 @@ static void parseCommand()
 			if (wirelessLength >= 6)
 			{
 				memcpy(&kftemp, wirelessPackage+2, 4);
-				if (kftemp >= 0.0 && kftemp < 500.0)
+				if (kftemp >= 0.0 && kftemp < 2.0)
                                 {
 					kp_roll = kp_pitch = kftemp;
                                         savePIDvals();
@@ -196,7 +198,7 @@ static void parseCommand()
 			if (wirelessLength >= 6)
 			{
 				memcpy(&kftemp, wirelessPackage+2, 4);
-				if (kftemp >= 0.0 && kftemp < 500.0) {
+				if (kftemp >= 0.0 && kftemp < 10.0) {
 					ki_roll = ki_pitch = kftemp;
                                         savePIDvals();
                                 }
@@ -204,6 +206,23 @@ static void parseCommand()
 			break;
 		case OPCODE_PID_CHECK:
 			dosendPID = 1;
+			break;
+		case OPCODE_MOTORDEBUG:
+			motordebug++;
+			if (motordebug==6) motordebug = 0;
+			break;
+                 case OPCODE_STARTLOG:
+			reset_log();
+                        logging = 1;
+			break;
+                 case OPCODE_STOPLOG:
+                        logging = 0;
+			break;
+                 case OPCODE_CLEARLOG:
+                        reset_log();
+			break;
+                 case OPCODE_PRINTLOG:
+			print_log();
 			break;
 	}
 	// at the end of execution, reset opcode
@@ -264,7 +283,7 @@ static void sendHeartbeat()
 static void sendDebug()
 {
 	// only enter loop if the debug flag bit is set
-	if ((debugFlag>>debugmode)&0x01)
+	if ((debugFlag>>debugmode)&0x01 || 1)
 	{
 #ifdef DEBUG
 		SERIAL_DEBUG.println("sending stats");
@@ -298,13 +317,20 @@ static void sendDebug()
 				SERIAL_WIRELESS.write(COMM_MODE_STATS);
 				SERIAL_WIRELESS.write(flightMode);
 				SERIAL_WIRELESS.write(armed);
+				SERIAL_WIRELESS.write((uint8_t*)&flighttime,4);
+				break;
+			case 6: // PID integral values
+				SERIAL_WIRELESS.write(COMM_MODE_PID_INT);
+				SERIAL_WIRELESS.write((uint8_t*)&intPitch,4);
+				SERIAL_WIRELESS.write((uint8_t*)&intRoll,4);
+				SERIAL_WIRELESS.write((uint8_t*)&intYaw,4);
 				break;
 		}
 		SERIAL_WIRELESS.write(COMM_END);
 		SERIAL_WIRELESS.write('\r');
 	}
 	debugmode++;
-	if (debugmode >= 6) debugmode = 0;
+	if (debugmode >= 7) debugmode = 0;
 }
 
 

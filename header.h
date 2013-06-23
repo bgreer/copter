@@ -7,12 +7,13 @@
 //#include <avr/pgmspace.h>
 #include <math.h>
 
-#define PIN_ARM_BUTTON 22
+#define PIN_ARM_BUTTON 14
 
 #define DEBUG 1
 #define TIMING 0
 #define ALLOW_PHYSICAL_ARMING 0
 #define SEND_CAUTIONS 1
+#define MOTOR_DEBUG 0
 
 // some math stuff
 #define ToRad(x) (x*0.01745329252)
@@ -20,7 +21,7 @@
 
 // led pins
 #define LED_STATUS 13
-#define LED_ARMED 23
+#define LED_ARMED 13
 
 // in case i get lazy
 #define TRUE (1)
@@ -35,23 +36,23 @@
 
 // serial ports
 #define SERIAL_DEBUG Serial
-#define SERIAL_WIRELESS Serial3 // 3
-#define SERIAL_IMU Serial2
+#define SERIAL_WIRELESS Serial3
+#define SERIAL_IMU Serial1
 
 #define WIRELESS_BAUD 38400
 #define WIRELESS_BYTELIMIT 32
-#define IMU_BAUD 115200
+#define IMU_BAUD 57600
 #define DEBUG_BAUD 38400
 
 // heartbeat timeout in microseconds
 // set to 2x the heartbeat time or something
-#define HEARTBEAT_TIMEOUT (4000000) // 4 secs
+#define HEARTBEAT_TIMEOUT (10000000) // 10 secs
 
 // if the copter rolls or pitches by more than this, kill motors and die gracefully
-#define KILL_ANGLE 70.0 // in degrees
+#define KILL_ANGLE 100.0 // in degrees
 
-#define TORQUEMAX 50.0
-#define PID_INTMAX 10.0
+#define TORQUEMAX 180.0
+#define PID_INTMAX 1000.0
 
 // Arduino stuff
 #include "Arduino.h"
@@ -81,6 +82,11 @@
 #define OPCODE_PID_KD 0x10 // update PID derivative gain
 #define OPCODE_PID_KI 0x11 // update PID integral gain
 #define OPCODE_PID_CHECK 0x12 // send current PID values for checking
+#define OPCODE_MOTORDEBUG 0x13 // increment motor for debugging
+#define OPCODE_STARTLOG 0x14 // begin logging
+#define OPCODE_STOPLOG 0x15 // stop logging
+#define OPCODE_CLEARLOG 0x16 // clear log
+#define OPCODE_PRINTLOG 0x17 // print log to serial_debug
 
 // for sending data back to the base station
 #define COMM_START 0x53
@@ -94,6 +100,7 @@
 #define COMM_MODE_STATS 0x07
 #define COMM_MODE_CAUTION 0x08
 #define COMM_MODE_PID 0x09
+#define COMM_MODE_PID_INT 0x0A
 
 // caution messages
 #define CAUTION_MOTOR_MAX 0x80
@@ -103,24 +110,27 @@
 #define CAUTION_ANGLE_KILL 0x84
 
 // Motor Control
-#define ESC_ARM_VAL 16
+#define ESC_ARM_VAL 18
 #define ESC_MAX_VAL 179
 
 // // // Variables
 
 // state variables
-float pitch, roll, yaw, lift;
+float pitch, roll, yaw, lift, initYaw;
 uint8_t gps_quality;
 float gps_xpos, gps_ypos, gps_zpos;
 float altitude;
 float gps_xvel, gps_yvel;
 uint8_t batterylevel[6] = {100,100,100,100,100,100};
+uint8_t newimu = 0; // is there new imu info?
+uint8_t logging = 0; // currently logging data
+uint8_t logflash = 0; // used to flash the status led when logging
 
 // motor control
 Servo motor[6];
 uint8_t motorval[6] = {0,0,0,0,0,0};
-uint8_t ESC_PIN[6] = {8,9,10,11,12,13};
-uint8_t BATT_PIN[6] = {A0, A1, A2, A3, A4, A5};
+uint8_t ESC_PIN[6] = {23,22,21,5,4,3};
+//uint8_t BATT_PIN[6] = {A0, A1, A2, A3, A4, A5};
 uint8_t armed = 0;
 uint8_t throttle = 0;
 
@@ -130,7 +140,8 @@ float kp_roll, ki_roll, kd_roll, kdd_roll;
 float kp_pitch, ki_pitch, kd_pitch, kdd_pitch;
 float kp_yaw, ki_yaw, kd_yaw, kdd_yaw;
 float kftemp;
-int8_t userPitch, userRoll, userYaw;
+int8_t userPitch, userRoll;
+uint8_t userYaw;
 int8_t userLift;
 float liftz, torquez, torquex, torquey;
 float xpos_hold, ypos_hold, zpos_hold, yaw_hold;

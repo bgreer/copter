@@ -4,14 +4,14 @@
 
 // for main loop timing
 uint32_t timer_200Hz, timer_50Hz, timer_10Hz, timer_2Hz;
-uint32_t time;
+uint32_t time, flighttime, lasttime, delta;
 uint8_t counter_10Hz, divider_1Hz, alt_armed;
 unsigned long armtime;
-uint8_t battindex;
+uint8_t battindex, setdefaultyaw = 0;
+float dt;
 
 // flight mode stuff
 uint8_t flightMode = STABILIZE;
-
 
 
 void setup()
@@ -23,42 +23,57 @@ void setup()
 	SERIAL_DEBUG.print("Version: ");
 	SERIAL_DEBUG.println(VERSION);
 #endif
-}
 
+}
 
 void loop()
 {
-	// 200Hz loop
-	// update IMU info
-	// calculate stability
-	// set motor speed (if armed)
-	
+	// as fast as possible
+	// this can run at 800Hz
 	time = micros();
-	if (time-timer_200Hz > 5000)
-	{
+
+	checkIMU();
 #if TIMING
-		SERIAL_DEBUG.print("200\t");
-		SERIAL_DEBUG.println(time-timer_200Hz);
+	SERIAL_DEBUG.println((time-lasttime));
 #endif
+	dt = (time-lasttime)/10000.;
+	lasttime = time;
+	PID_update();
+	PID_calcForces();
+	set_motorspeed();
+	// 200Hz loop
+	if (time-timer_200Hz > 10000) // not quite 200Hz.. whatever
+	{
 		// check the IMU serial comm for data
-		checkIMU();
-		// use PID controller to compare targets to actual values
-		PID_update();
-		PID_calcForces();
-		// use PID controller suggestions to set motor speed
-		set_motorspeed();
-
-		// need to call this very frequently?
-		update_altitude();
-
+//		checkIMU();
 		timer_200Hz = time;
+	}
+
+	// 50Hz loop
+	if (time-timer_50Hz > 20000)
+	{
+		// need to call this very frequently?
+		//update_altitude();
+                // logging
+                if (logging)
+                {
+                  log_entry((uint8_t)(pitch*5+128), (uint8_t)(roll*5+128), (uint8_t)(torquex*2+128), (uint8_t)(torquey*2+128));
+                  digitalWrite(13, logflash);
+                  logflash = ~logflash;
+                } else {
+                  if (armed)
+                    digitalWrite(13, HIGH);
+                  else
+                    digitalWrite(13, LOW);
+                }
+		timer_50Hz = time;
 	}
 
 	// 10Hz loop
 	// check wireless data
 	// update flight mode (consider heartbeat)
 	
-	time = micros();
+//	time = micros();
 	if (time-timer_10Hz > 100000)
 	{
 #if TIMING
@@ -72,11 +87,13 @@ void loop()
 
 		// check to see if i've flipped over
 		// if i have, kill motors and let me die gracefully
-		if (abs(roll) + abs(pitch) > KILL_ANGLE)
+		if (abs(roll) > KILL_ANGLE || abs(pitch) > KILL_ANGLE)
 		{
 			disarm_motors();
 			caution(CAUTION_ANGLE_KILL);
 		}
+                
+
 
 #if DEBUG
 //		for (int i=0; i<6; i++)
@@ -95,12 +112,19 @@ void loop()
 	// check wireless heartbeat timeout
 	// get GPS info
 
-	time = micros();
+//	time = micros();
 	if (time-timer_2Hz > 500000)
 	{
+		// set default yaw
+		if (time > 1530000 && !setdefaultyaw)
+		{
+			initYaw = yaw;
+			setdefaultyaw = 1;
+		}
+
 		// check wireless heartbeat
 		
-		if (heartbeat && time-lastHeartbeat > HEARTBEAT_TIMEOUT)
+		if (heartbeat && millis()-lastHeartbeat > HEARTBEAT_TIMEOUT)
 		{
 			// no heartbeat detected from base station
 			heartbeat = 0;
@@ -123,13 +147,15 @@ void loop()
 		if (divider_1Hz)
 			sendHeartbeat();
 
+		flighttime = millis();
+
 		// check physical arming
 #if ALLOW_PHYSICAL_ARMING
 		if (armed)
 		{
 			if (digitalRead(PIN_ARM_BUTTON) == HIGH)
 			{
-				disarm_motors();
+				disarm_motors(); // TODO: don't call disarm, it's dumb
 				armtime = millis();
 			}
 		} else {
@@ -155,7 +181,6 @@ void loop()
 		divider_1Hz = !divider_1Hz;
 		timer_2Hz = time;
 	}
-	
 }
 
 
@@ -180,25 +205,27 @@ static void quick_start()
 	// initialize PID controller
 
 	// start serial ports
-	SERIAL_WIRELESS.begin(WIRELESS_BAUD);
-	SERIAL_IMU.begin(IMU_BAUD);
-	SERIAL_IMU.setTimeout(10);
+	//SERIAL_WIRELESS.begin(WIRELESS_BAUD);
+        Serial3.begin(WIRELESS_BAUD);
+	Serial1.begin(IMU_BAUD);
+	SERIAL_IMU.setTimeout(2);
 #if DEBUG
-	SERIAL_DEBUG.begin(DEBUG_BAUD);
+	Serial.begin(DEBUG_BAUD);
 #endif
-        PID_init();
+
+	PID_init();
 	// start I2C, SPI if needed here
 	// set pinmodes and states
 	pinMode(LED_STATUS, OUTPUT);
 	pinMode(LED_ARMED, OUTPUT);
+
 	pinMode(PIN_ARM_BUTTON, INPUT);
 	// send quick hello over wireless
 	SERIAL_WIRELESS.write(COMM_START);
 	SERIAL_WIRELESS.write(COMM_MODE_HELLO);
 	SERIAL_WIRELESS.write(COMM_END);
 
-	alt_init();
-
+	//alt_init();
 	// should be ready to enter main loop now
 #if DEBUG
 	SERIAL_DEBUG.print("Quickstart complete after ");
@@ -206,4 +233,5 @@ static void quick_start()
 	SERIAL_DEBUG.println(" us");
 #endif
 	battindex = 0;
+
 }

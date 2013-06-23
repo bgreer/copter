@@ -182,6 +182,12 @@ void handleKeydown (SDLKey key)
 		case 101: /* E */
 			sendD();
 			break;
+		case 108: /* L */
+			startlog();
+			break;
+		case 107: /* K */
+			printlog();
+			break;
 	}
 }
 
