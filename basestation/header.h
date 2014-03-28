@@ -7,11 +7,16 @@
 #include <SDL_ttf.h>
 #include <SDL_draw.h>
 
+#define PI 3.14159265359
+#define TWOPI 6.28318530718
+
 // colors
 #define COLOR_PRIMARY 0x009cff
 #define COLOR_SECONDARY 0xffc000
 #define COLOR_TERTIARY 0xff203a
 #define COLOR_QUATERNARY 0x84ff20
+
+#define COLOR_WARN 0xff2222
 
 #define DATASTREAMSIZE 256
 #define NUMALTS 64
@@ -33,6 +38,10 @@ struct copterinfo
 	float alt0;
 	float alt[NUMALTS];
 	int altindex;
+
+	// motors
+	int motorspeed[6]; // speed
+	Uint32 motorwarn[6]; // time of last warning
 
 	// gps
 	float lon[NUMGPS], lat[NUMGPS];
@@ -66,6 +75,8 @@ void window_position (window *w, copterinfo *c, SDL_Surface *screen, TTF_Font *f
 void window_datastream (window *w, copterinfo *c, SDL_Surface *screen, TTF_Font *font);
 void window_screennav (window *w, copterinfo *c, SDL_Surface *screen, TTF_Font *font);
 void window_exit (window *w, copterinfo *c, SDL_Surface *screen, TTF_Font *font);
+void window_motorspeed (window *w, copterinfo *c, SDL_Surface *screen, TTF_Font *font);
 void window_position_click (int x, int y, window *w, copterinfo *c);
 void window_screennav_click (int x, int y, window *w, copterinfo *c);
 void window_exit_click (int x, int y, window *w, copterinfo *c);
+void window_motorspeed_click (int x, int y, window *w, copterinfo *c);

@@ -11,6 +11,50 @@ void window_test (window *w, copterinfo *c, SDL_Surface *screen, TTF_Font *font)
 	SDL_FillRect(screen, &r1, COLOR_PRIMARY);
 }
 
+void window_motorspeed (window *w, copterinfo *c, SDL_Surface *screen, TTF_Font *font)
+{
+	int ii, x, y;
+	SDL_Rect r1;
+	Uint32 time;
+
+	time = SDL_GetTicks();
+
+	// make border
+	r1.x = w->x0;
+	r1.y = w->y0;
+	r1.w = 220;
+	r1.h = 200;
+	SDL_FillRect(screen, &r1, COLOR_PRIMARY);
+	r1.x += 3;
+	r1.y += 3;
+	r1.w -= 6;
+	r1.h -= 6;
+	SDL_FillRect(screen, &r1, 0);
+
+	// draw circles
+	for (ii=0; ii<6; ii++)
+	{
+		// find center
+		x = w->x0 + 110 + 60*cos(TWOPI*ii/6.0);
+		y = w->y0 + 100 + 60*sin(TWOPI*ii/6.0);
+		// draw border, possible color warning
+		if (time - c->motorwarn[ii] < 2000)
+		{
+			Draw_FillCircle(screen, x, y, 33, COLOR_WARN);
+			Draw_FillCircle(screen, x, y, 30, 0);
+		} else {
+			Draw_Circle(screen, x, y, 30, COLOR_PRIMARY);
+		}
+		// fill with motorspeed
+		Draw_FillCircle(screen, x, y, (int)(30.*c->motorspeed[ii]/180.), COLOR_SECONDARY);
+	}
+}
+
+void window_motorspeed_click (int x, int y, window *w, copterinfo *c)
+{
+
+}
+
 void window_position (window *w, copterinfo *c, SDL_Surface *screen, TTF_Font *font)
 {
 	int ii, ind, width;

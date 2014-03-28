@@ -72,8 +72,15 @@ int main (int argc, char *argv[])
 	memset(c.lon, 0x00, NUMGPS*sizeof(float));
 	memset(c.lat, 0x00, NUMGPS*sizeof(float));
 
+	// initialize motor speeds
+	for (ii=0; ii<6; ii++)
+	{
+		c.motorspeed[ii] = 0;
+		c.motorwarn[ii] = -10000;
+	}
+
 	// allocate space for windows
-	numwindows = 3;
+	numwindows = 4;
 	w = (window*) malloc(numwindows * sizeof(window));
 
 	w[0].draw = &window_position;
@@ -91,6 +98,11 @@ int main (int argc, char *argv[])
 	w[2].x0 = 740;
 	w[2].y0 = 420;
 	w[2].screen = 2;
+	w[3].draw = &window_motorspeed;
+	w[3].click = &window_motorspeed_click;
+	w[3].x0 = 570;
+	w[3].y0 = 270;
+	w[3].screen = 1;
 
 	curralt = 1.0;
 	currlon = -105.;
@@ -123,6 +135,13 @@ int main (int argc, char *argv[])
 		c.lat[c.gpsindex] = currlat;
 		c.gpsindex++;
 		if (c.gpsindex == NUMGPS) c.gpsindex = 0;
+
+		// fake motorspeeds
+		for (ii=0; ii<6; ii++)
+		{
+			c.motorspeed[ii] = (int)(ii*18*(1.+sin(TWOPI*SDL_GetTicks()/10000.)));
+			if (c.motorspeed[ii] > 130) c.motorwarn[ii] = SDL_GetTicks();
+		}
 
 		// clear screen
 		SDL_FillRect(screen, &r1, 0);
